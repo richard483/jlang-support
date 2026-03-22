@@ -29,10 +29,11 @@ export const GET: RequestHandler = async ({ url }) => {
 		// Vocab / compound search (only when query has kanji)
 		kanjiChars.length > 0
 			? db.query(
-					`SELECT DISTINCT v.id, v.word, v.readings, v.meanings, v.is_common
+					`SELECT v.id, v.word, v.readings, v.meanings, v.is_common
 					 FROM vocab v
-					 JOIN vocab_kanji vk ON vk.vocab_id = v.id
-					 WHERE vk.kanji_char = ANY($1)
+					 WHERE v.id IN (
+					     SELECT vocab_id FROM vocab_kanji WHERE kanji_char = ANY($1)
+					 )
 					 ORDER BY
 					    CASE WHEN v.word = $2 THEN 0
 					         WHEN $2 = ANY(v.alt_forms) THEN 1
