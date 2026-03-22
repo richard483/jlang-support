@@ -40,13 +40,26 @@
 
 		fetch(`/kanjivg/${svgFile}`)
 			.then((r) => r.text())
-			.then(async (text) => {
+			.then((text) => {
 				rawSvgText = text;
-				svgContent = text;
-				await tick();
-				initStrokes();
+				// Strip DOCTYPE so the inline DTD's "]>" doesn't leak as visible text
+				svgContent = text.replace(/<!DOCTYPE[\s\S]*?]>\s*/m, '');
 				loaded = true;
 			});
+	});
+
+	// Re-initialise stroke paths whenever the animate container is (re-)mounted.
+	// This fires on first load and again after switching back from Steps tab,
+	// because {#if mode==='animate'} tears down and re-creates the container div.
+	$effect(() => {
+		if (!container || !loaded) return;
+		// Read mode so the effect re-runs when switching back to animate
+		void mode;
+		tick().then(() => {
+			pause();
+			currentStroke = 0;
+			initStrokes();
+		});
 	});
 
 	function getOrderedPaths(svg: SVGSVGElement): SVGPathElement[] {
