@@ -30,7 +30,7 @@ npm install
 
 ```bash
 cp .env.example .env
-# Edit .env and set DATABASE_URL
+# Edit .env and set the required variables (see Environment Variables below)
 ```
 
 ### 3. Initialize the database
@@ -69,6 +69,23 @@ npm run import:kanjivg
 ```bash
 npm run dev
 ```
+
+## Environment Variables
+
+| Variable | Required | Description |
+|---|---|---|
+| `DATABASE_URL` | Yes | PostgreSQL connection string, e.g. `postgres://user:pass@host:5432/jlang` |
+| `HOST` | No | Server bind address (default: `0.0.0.0`) |
+| `PORT` | No | Server port (default: `3000`) |
+
+## Docker
+
+```bash
+docker build -t jlang-support .
+docker run -p 3000:3000 -e DATABASE_URL=postgres://user:pass@host:5432/jlang jlang-support
+```
+
+> The KanjiVG stroke SVGs must be imported before building the image (`npm run import:kanjivg`), as they are bundled into the image from `static/kanjivg/`.
 
 ## Scripts
 
