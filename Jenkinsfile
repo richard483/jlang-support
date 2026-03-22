@@ -4,6 +4,6 @@ KubePipeline() {
 	dockerImage = "jlang-support:latest"
 	projectName = "jlang-support"
 	appPort = "3000"
-    externalEndpointsIp = "10.10.10.12"
-    kubeNodePort = "30012"
+    externalEndpointsIp = "10.10.10.16"
+    kubeNodePort = "30016"
 }
