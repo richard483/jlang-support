@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { FORM_LABELS } from '$lib/utils/conjugation';
+	import StrokeOrder from '$lib/components/StrokeOrder.svelte';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -77,18 +78,16 @@
 <div class="space-y-6">
 	<!-- Header -->
 	<div class="bg-white border border-gray-200 rounded-2xl p-6 flex items-start gap-6">
-		<div class="text-center shrink-0">
+		<div class="shrink-0">
 			{#if kanji.svg_file}
-				<img
-					src="/kanjivg/{kanji.svg_file}"
-					alt="Stroke order for {kanji.literal}"
-					class="w-32 h-32"
-				/>
+				<StrokeOrder svgFile={kanji.svg_file} />
 			{:else}
-				<span class="text-8xl font-thin flex items-center justify-center w-32 h-32">{kanji.literal}</span>
-			{/if}
-			{#if kanji.stroke_count}
-				<p class="text-xs text-gray-400 mt-1">{kanji.stroke_count} strokes</p>
+				<div class="flex flex-col items-center gap-1">
+					<span class="text-8xl font-thin flex items-center justify-center w-48 h-48 border border-gray-200 rounded-xl bg-white">{kanji.literal}</span>
+					{#if kanji.stroke_count}
+						<p class="text-xs text-gray-400">{kanji.stroke_count} strokes</p>
+					{/if}
+				</div>
 			{/if}
 		</div>
 
