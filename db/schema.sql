@@ -15,7 +15,8 @@ CREATE TABLE IF NOT EXISTS kanji (
     kun_readings TEXT[],
     nanori TEXT[],
     radical_number INT,
-    svg_file TEXT       -- filename in /static/kanjivg/, e.g. "04e2c.svg"
+    svg_file TEXT,      -- KanjiVG filename, e.g. "04e2c.svg"
+    svg_content TEXT    -- inline SVG XML content (served via /kanjivg/[file])
 );
 
 -- Pre-loaded from KRADFILE

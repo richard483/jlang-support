@@ -1,34 +1,32 @@
 /**
- * One-time import script: copy KanjiVG SVG files to static/kanjivg/ and
- * update the kanji table svg_file column.
+ * One-time import script: read KanjiVG SVG files and store content in the DB.
+ * SVGs are served at runtime via /kanjivg/[file] from the database,
+ * so no static files are needed in the deployed image.
  *
  * Usage:
  *   1. Download KanjiVG from https://github.com/KanjiVG/kanjivg/releases
- *      Get kanjivg-<version>.zip and extract the "kanji/" folder into data/kanjivg/
+ *      Get kanjivg-<version>-all.zip and extract the "kanji/" folder into data/kanjivg-raw/kanji/
  *   2. DATABASE_URL=postgres://... npx tsx scripts/import-kanjivg.ts
  *
  * KanjiVG file names are Unicode codepoints in hex with leading zeros:
- *   04e2c.svg = 一 (U+4E2C... actually 4e00 = 一)
+ *   04e00.svg = 一, 0697d.svg = 楽
  *   Files may have variants: 04e00.svg, 04e00-Kaisho.svg, etc.
- * We only import the base files (no dash variant suffix).
+ * We only import base files (no dash variant suffix).
  */
 
-import { readdirSync, copyFileSync, mkdirSync } from 'fs';
+import { readdirSync, readFileSync } from 'fs';
 import { existsSync } from 'fs';
 import pg from 'pg';
 
 const { Pool } = pg;
 
 const SOURCE_DIR = 'data/kanjivg-raw/kanji';
-const DEST_DIR = 'static/kanjivg';
 
 async function main() {
 	if (!existsSync(SOURCE_DIR)) {
 		console.error(`Source directory ${SOURCE_DIR} not found. Download KanjiVG first.`);
 		process.exit(1);
 	}
-
-	mkdirSync(DEST_DIR, { recursive: true });
 
 	const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 	const client = await pool.connect();
@@ -43,14 +41,14 @@ async function main() {
 		}
 		console.log(`Loaded ${kanjiByCodepoint.size} kanji from DB`);
 
-		// List SVG files — only base files (no variant suffix like -Kaisho)
+		// List only base SVG files (no variant suffix like -Kaisho)
 		const svgFiles = readdirSync(SOURCE_DIR).filter(
 			(f) => f.endsWith('.svg') && !f.includes('-')
 		);
 		console.log(`Found ${svgFiles.length} base SVG files in ${SOURCE_DIR}`);
 
 		await client.query('BEGIN');
-		let copied = 0;
+		let processed = 0;
 		let updated = 0;
 
 		for (const filename of svgFiles) {
@@ -58,22 +56,20 @@ async function main() {
 			const literal = kanjiByCodepoint.get(codepoint);
 			if (!literal) continue;
 
-			// Copy to static/
-			copyFileSync(`${SOURCE_DIR}/${filename}`, `${DEST_DIR}/${filename}`);
-			copied++;
+			const content = readFileSync(`${SOURCE_DIR}/${filename}`, 'utf-8');
 
-			// Update DB
 			const result = await client.query(
-				'UPDATE kanji SET svg_file = $1 WHERE literal = $2',
-				[filename, literal]
+				'UPDATE kanji SET svg_file = $1, svg_content = $2 WHERE literal = $3',
+				[filename, content, literal]
 			);
 			if (result.rowCount && result.rowCount > 0) updated++;
+			processed++;
 
-			if (copied % 500 === 0) process.stdout.write(`  ${copied}/${svgFiles.length}\r`);
+			if (processed % 500 === 0) process.stdout.write(`  ${processed}/${svgFiles.length}\r`);
 		}
 
 		await client.query('COMMIT');
-		console.log(`\nCopied ${copied} SVGs, updated ${updated} DB rows.`);
+		console.log(`\nDone! Stored SVG content for ${updated} kanji in DB.`);
 	} catch (e) {
 		await client.query('ROLLBACK');
 		throw e;

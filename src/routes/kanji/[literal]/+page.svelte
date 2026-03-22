@@ -1,9 +1,10 @@
 <script lang="ts">
+	import { FORM_LABELS } from '$lib/utils/conjugation';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
 
-	let { kanji, radicals, mnemonics: initialMnemonics, bookmarked: initialBookmarked } = $derived(data);
+	let { kanji, radicals, mnemonics: initialMnemonics, bookmarked: initialBookmarked, wordForms } = $derived(data);
 
 	let bookmarked = $state(false);
 	let mnemonics = $state<typeof initialMnemonics>([]);
@@ -12,12 +13,19 @@
 		bookmarked = initialBookmarked;
 		mnemonics = [...initialMnemonics];
 	});
+
 	let showMnemonicForm = $state(false);
 	let newMnemonic = $state('');
 	let newEtymology = $state('');
 	let submitting = $state(false);
 
 	const tanoshiiUrl = $derived(`https://www.tanoshiijapanese.com/dictionary/?j=${encodeURIComponent(kanji.literal)}`);
+
+	const TYPE_LABEL: Record<string, string> = {
+		'verb-ichidan': 'Ichidan verb (る)',
+		'verb-godan': 'Godan verb (う)',
+		'adjective-i': 'I-adjective'
+	};
 
 	async function toggleBookmark() {
 		if (bookmarked) {
@@ -69,8 +77,7 @@
 <div class="space-y-6">
 	<!-- Header -->
 	<div class="bg-white border border-gray-200 rounded-2xl p-6 flex items-start gap-6">
-		<div class="text-center">
-			<!-- Stroke diagram or large character -->
+		<div class="text-center shrink-0">
 			{#if kanji.svg_file}
 				<img
 					src="/kanjivg/{kanji.svg_file}"
@@ -78,7 +85,7 @@
 					class="w-32 h-32"
 				/>
 			{:else}
-				<span class="text-8xl font-thin block w-32 h-32 flex items-center justify-center">{kanji.literal}</span>
+				<span class="text-8xl font-thin flex items-center justify-center w-32 h-32">{kanji.literal}</span>
 			{/if}
 			{#if kanji.stroke_count}
 				<p class="text-xs text-gray-400 mt-1">{kanji.stroke_count} strokes</p>
@@ -107,9 +114,7 @@
 				</button>
 			</div>
 
-			<div>
-				<p class="font-semibold text-gray-800">{kanji.meanings.join(', ')}</p>
-			</div>
+			<p class="font-semibold text-gray-800">{kanji.meanings.join(', ')}</p>
 
 			{#if kanji.on_readings.length > 0}
 				<div class="flex gap-2 items-baseline">
@@ -130,12 +135,8 @@
 				</div>
 			{/if}
 
-			<a
-				href={tanoshiiUrl}
-				target="_blank"
-				rel="noopener noreferrer"
-				class="inline-text text-xs text-indigo-500 hover:underline"
-			>
+			<a href={tanoshiiUrl} target="_blank" rel="noopener noreferrer"
+				class="text-xs text-indigo-500 hover:underline">
 				View on Tanoshii Japanese ↗
 			</a>
 		</div>
@@ -147,13 +148,52 @@
 			<h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Radicals</h2>
 			<div class="flex gap-3 flex-wrap">
 				{#each radicals as radical}
-					<a
-						href="/kanji/{encodeURIComponent(radical)}"
+					<a href="/kanji/{encodeURIComponent(radical)}"
 						class="text-3xl leading-none p-2 rounded-lg bg-gray-50 hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
-						title="View {radical}"
-					>{radical}</a>
+						title="View {radical}">{radical}</a>
 				{/each}
 			</div>
+		</div>
+	{/if}
+
+	<!-- Word forms (verbs / adjectives) -->
+	{#if wordForms.length > 0}
+		<div class="bg-white border border-gray-200 rounded-2xl p-5 space-y-5">
+			<h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide">Word Forms</h2>
+
+			{#each wordForms as wf}
+				<div>
+					<div class="flex items-baseline gap-2 mb-3">
+						<span class="text-2xl font-light">{wf.word}</span>
+						<span class="text-sm text-gray-400">{wf.reading}</span>
+						<span class="text-xs bg-purple-100 text-purple-600 px-2 py-0.5 rounded-full">{TYPE_LABEL[wf.type]}</span>
+					</div>
+
+					{#if wf.adjForms}
+						<table class="w-full text-sm">
+							<tbody>
+								{#each wf.adjForms as f}
+									<tr class="border-b border-gray-50 hover:bg-gray-50">
+										<td class="py-2 text-gray-500 w-44">{f.label}</td>
+										<td class="py-2 text-xl font-light">{f.form}</td>
+									</tr>
+								{/each}
+							</tbody>
+						</table>
+					{:else if wf.conjugation}
+						<table class="w-full text-sm">
+							<tbody>
+								{#each Object.entries(wf.conjugation.forms) as [key, value]}
+									<tr class="border-b border-gray-50 hover:bg-gray-50">
+										<td class="py-2 text-gray-500 w-44">{FORM_LABELS[key as keyof typeof FORM_LABELS]}</td>
+										<td class="py-2 text-xl font-light">{value}</td>
+									</tr>
+								{/each}
+							</tbody>
+						</table>
+					{/if}
+				</div>
+			{/each}
 		</div>
 	{/if}
 
@@ -161,32 +201,24 @@
 	<div class="bg-white border border-gray-200 rounded-2xl p-5 space-y-4">
 		<div class="flex items-center justify-between">
 			<h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide">Mnemonics & Etymology</h2>
-			<button
-				onclick={() => (showMnemonicForm = !showMnemonicForm)}
-				class="text-sm text-indigo-600 hover:underline"
-			>
+			<button onclick={() => (showMnemonicForm = !showMnemonicForm)}
+				class="text-sm text-indigo-600 hover:underline">
 				{showMnemonicForm ? 'Cancel' : '+ Add'}
 			</button>
 		</div>
 
 		{#if showMnemonicForm}
 			<div class="space-y-3 p-4 bg-gray-50 rounded-xl">
-				<textarea
-					bind:value={newMnemonic}
+				<textarea bind:value={newMnemonic}
 					placeholder="How do you remember this kanji? (e.g. 'Looks like a tree with roots')"
 					class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none h-20 focus:outline-none focus:ring-2 focus:ring-indigo-400"
 				></textarea>
-				<input
-					bind:value={newEtymology}
-					type="text"
+				<input bind:value={newEtymology} type="text"
 					placeholder="Etymology hint (optional)"
 					class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
 				/>
-				<button
-					onclick={addMnemonic}
-					disabled={submitting || !newMnemonic.trim()}
-					class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-indigo-700 disabled:opacity-50 transition-colors"
-				>
+				<button onclick={addMnemonic} disabled={submitting || !newMnemonic.trim()}
+					class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-indigo-700 disabled:opacity-50 transition-colors">
 					{submitting ? 'Saving...' : 'Save'}
 				</button>
 			</div>
@@ -202,10 +234,8 @@
 				{#if m.etymology}
 					<p class="text-xs text-gray-400 italic">{m.etymology}</p>
 				{/if}
-				<button
-					onclick={() => deleteMnemonic(m.id)}
-					class="absolute top-3 right-3 text-xs text-red-400 opacity-0 group-hover:opacity-100 transition-opacity hover:text-red-600"
-				>
+				<button onclick={() => deleteMnemonic(m.id)}
+					class="absolute top-3 right-3 text-xs text-red-400 opacity-0 group-hover:opacity-100 transition-opacity hover:text-red-600">
 					delete
 				</button>
 			</div>

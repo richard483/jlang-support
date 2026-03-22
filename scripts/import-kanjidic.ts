@@ -32,8 +32,8 @@ function parseKanjiDic(xmlContent: string): KanjiEntry[] {
 	const parser = new XMLParser({
 		ignoreAttributes: false,
 		attributeNamePrefix: '@_',
-		isArray: (name) =>
-			['character', 'reading', 'meaning', 'rad_value', 'misc', 'nanori'].includes(name)
+		// NOTE: 'misc' must NOT be in this list — it is a single object, not an array
+		isArray: (name) => ['character', 'reading', 'meaning', 'rad_value', 'nanori'].includes(name)
 	});
 
 	const result = parser.parse(xmlContent);
@@ -44,17 +44,23 @@ function parseKanjiDic(xmlContent: string): KanjiEntry[] {
 		const literal = char.literal ?? '';
 		if (!literal) continue;
 
-		// Stroke count
-		const strokeCount = char.misc?.stroke_count ?? null;
+		// stroke_count can appear multiple times (variant counts) — take the first
+		const strokeRaw = char.misc?.stroke_count;
+		const strokeCount = strokeRaw
+			? Number(Array.isArray(strokeRaw) ? strokeRaw[0] : strokeRaw)
+			: null;
 
 		// Grade (1-10)
-		const grade = char.misc?.grade ?? null;
+		const grade = char.misc?.grade ? Number(char.misc.grade) : null;
 
-		// JLPT level
-		const jlptLevel = char.misc?.jlpt ?? null;
+		// JLPT — KanjiDic2 uses old 4-level scale; remap to N-level numbers:
+		//   old 4 → 5 (N5), old 3 → 4 (N4), old 2 → 2 (N2), old 1 → 1 (N1)
+		const jlptRaw = char.misc?.jlpt ? Number(char.misc.jlpt) : null;
+		const JLPT_MAP: Record<number, number> = { 4: 5, 3: 4, 2: 2, 1: 1 };
+		const jlptLevel = jlptRaw !== null ? (JLPT_MAP[jlptRaw] ?? jlptRaw) : null;
 
 		// Frequency rank
-		const frequency = char.misc?.freq ?? null;
+		const frequency = char.misc?.freq ? Number(char.misc.freq) : null;
 
 		// Radical number (classical)
 		const radValues = char.radical?.rad_value ?? [];
@@ -87,10 +93,10 @@ function parseKanjiDic(xmlContent: string): KanjiEntry[] {
 
 		entries.push({
 			literal,
-			strokeCount: strokeCount ? Number(strokeCount) : null,
-			grade: grade ? Number(grade) : null,
-			jlptLevel: jlptLevel ? Number(jlptLevel) : null,
-			frequency: frequency ? Number(frequency) : null,
+			strokeCount,
+			grade,
+			jlptLevel,
+			frequency,
 			meanings,
 			onReadings,
 			kunReadings,
