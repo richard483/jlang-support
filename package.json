@@ -13,7 +13,8 @@
 		"db:schema": "psql $DATABASE_URL -f db/schema.sql",
 		"import:kanjidic": "npx tsx scripts/import-kanjidic.ts",
 		"import:kradfile": "npx tsx scripts/import-kradfile.ts",
-		"import:kanjivg": "npx tsx scripts/import-kanjivg.ts"
+		"import:kanjivg": "npx tsx scripts/import-kanjivg.ts",
+		"import:jmdict": "npx tsx scripts/import-jmdict.ts"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-node": "^5.5.2",

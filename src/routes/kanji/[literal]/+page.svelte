@@ -4,7 +4,7 @@
 
 	let { data }: { data: PageData } = $props();
 
-	let { kanji, radicals, mnemonics: initialMnemonics, bookmarked: initialBookmarked, wordForms } = $derived(data);
+	let { kanji, radicals, mnemonics: initialMnemonics, bookmarked: initialBookmarked, wordForms, vocab } = $derived(data);
 
 	let bookmarked = $state(false);
 	let mnemonics = $state<typeof initialMnemonics>([]);
@@ -194,6 +194,26 @@
 					{/if}
 				</div>
 			{/each}
+		</div>
+	{/if}
+
+	<!-- Vocabulary / compounds using this kanji -->
+	{#if vocab.length > 0}
+		<div class="bg-white border border-gray-200 rounded-2xl p-5">
+			<h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Words</h2>
+			<div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+				{#each vocab as v}
+					<a href="/vocab/{encodeURIComponent(v.word)}"
+						class="flex items-baseline gap-3 p-3 rounded-xl hover:bg-indigo-50 hover:text-indigo-700 transition-colors group">
+						<span class="text-2xl font-light shrink-0">{v.word}</span>
+						<span class="text-sm text-gray-400 group-hover:text-indigo-400">{v.readings[0]}</span>
+						<span class="text-xs text-gray-500 truncate">{v.meanings[0]}</span>
+						{#if v.is_common}
+							<span class="ml-auto text-xs bg-emerald-100 text-emerald-600 px-1.5 py-0.5 rounded-full shrink-0">common</span>
+						{/if}
+					</a>
+				{/each}
+			</div>
 		</div>
 	{/if}
 

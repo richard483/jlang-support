@@ -84,14 +84,23 @@ export const load: PageServerLoad = async ({ params }) => {
 	const { literal } = params;
 	if (!literal || [...literal].length !== 1) error(400, 'Invalid kanji');
 
-	const [kanjiResult, radicalsResult, mnemonicsResult, bookmarkResult] = await Promise.all([
+	const [kanjiResult, radicalsResult, mnemonicsResult, bookmarkResult, vocabResult] = await Promise.all([
 		db.query('SELECT * FROM kanji WHERE literal = $1', [literal]),
 		db.query('SELECT radical FROM kanji_radicals WHERE kanji_literal = $1', [literal]),
 		db.query(
 			'SELECT id, mnemonic, etymology, created_at FROM kanji_mnemonics WHERE kanji_literal = $1 ORDER BY created_at DESC',
 			[literal]
 		),
-		db.query('SELECT id FROM bookmarks WHERE kanji_literal = $1', [literal])
+		db.query('SELECT id FROM bookmarks WHERE kanji_literal = $1', [literal]),
+		db.query(
+			`SELECT v.word, v.readings, v.meanings, v.is_common
+			 FROM vocab v
+			 JOIN vocab_kanji vk ON vk.vocab_id = v.id
+			 WHERE vk.kanji_char = $1
+			 ORDER BY v.is_common DESC, LENGTH(v.word) ASC
+			 LIMIT 30`,
+			[literal]
+		)
 	]);
 
 	if (kanjiResult.rows.length === 0) error(404, `Kanji "${literal}" not found`);
@@ -122,6 +131,12 @@ export const load: PageServerLoad = async ({ params }) => {
 			created_at: string;
 		}[],
 		bookmarked: bookmarkResult.rows.length > 0,
-		wordForms
+		wordForms,
+		vocab: vocabResult.rows as {
+			word: string;
+			readings: string[];
+			meanings: string[];
+			is_common: boolean;
+		}[]
 	};
 };

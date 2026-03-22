@@ -45,6 +45,27 @@ CREATE TABLE IF NOT EXISTS bookmarks (
     UNIQUE(kanji_literal)
 );
 
+-- Vocabulary / compound words (from JMdict)
+CREATE TABLE IF NOT EXISTS vocab (
+    id          INT PRIMARY KEY,      -- JMdict ent_seq
+    word        TEXT NOT NULL,        -- primary kanji form, e.g. 青春
+    alt_forms   TEXT[],               -- additional kanji forms
+    readings    TEXT[] NOT NULL,      -- hiragana readings, e.g. {せいしゅん}
+    meanings    TEXT[] NOT NULL,      -- English glosses
+    is_common   BOOLEAN NOT NULL DEFAULT FALSE
+);
+
+-- Junction: which kanji characters appear in each vocab word?
+CREATE TABLE IF NOT EXISTS vocab_kanji (
+    vocab_id    INT REFERENCES vocab(id) ON DELETE CASCADE,
+    kanji_char  CHAR(1) NOT NULL,
+    PRIMARY KEY (vocab_id, kanji_char)
+);
+
+CREATE INDEX IF NOT EXISTS idx_vocab_kanji_char ON vocab_kanji(kanji_char);
+CREATE INDEX IF NOT EXISTS idx_vocab_word       ON vocab(word);
+CREATE INDEX IF NOT EXISTS idx_vocab_common     ON vocab(is_common) WHERE is_common = TRUE;
+
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_kanji_jlpt ON kanji(jlpt_level);
 CREATE INDEX IF NOT EXISTS idx_kanji_grade ON kanji(grade);
