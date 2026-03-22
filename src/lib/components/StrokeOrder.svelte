@@ -137,14 +137,27 @@
 	}
 
 	// ── steps mode ────────────────────────────────────────────────────────────
+
+	/** Fix namespace issues so DOMParser (strict XML mode) can parse KanjiVG SVGs. */
+	function fixSvgNamespaces(text: string): string {
+		return (
+			text
+				// Strip DOCTYPE — browsers don't process inline DTD subsets
+				.replace(/<!DOCTYPE[\s\S]*?]>/m, '')
+				// Declare the kvg: prefix that the inline DTD normally provides
+				.replace(/<svg /, '<svg xmlns:kvg="http://kanjivg.tagaini.net" ')
+		);
+	}
+
 	function buildStepSvgs() {
 		if (stepSvgs.length > 0) return; // already built
 		const parser = new DOMParser();
 		const serializer = new XMLSerializer();
 		const results: string[] = [];
+		const cleanSvgText = fixSvgNamespaces(rawSvgText);
 
 		for (let stepIdx = 0; stepIdx < totalStrokes; stepIdx++) {
-			const doc = parser.parseFromString(rawSvgText, 'image/svg+xml');
+			const doc = parser.parseFromString(cleanSvgText, 'image/svg+xml');
 			const svg = doc.documentElement as unknown as SVGSVGElement;
 
 			svg.setAttribute('width', '80');
