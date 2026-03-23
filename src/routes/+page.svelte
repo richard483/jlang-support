@@ -1,6 +1,9 @@
 <script lang="ts">
 	import type { PageData } from './$types';
+	import { goto } from '$app/navigation';
 	import { kanaToRomaji, katakanaToHiragana } from '$lib/utils/kana';
+
+	const KANJI_RE = /^[\u4E00-\u9FFF\u3400-\u4DBF\uF900-\uFAFF]$/;
 
 	let { data }: { data: PageData } = $props();
 
@@ -23,11 +26,17 @@
 	let searched = $state(false);
 
 	async function search() {
-		if (!query.trim()) return;
+		const q = query.trim();
+		if (!q) return;
+		// Single kanji → go directly to detail page
+		if (KANJI_RE.test(q)) {
+			goto(`/kanji/${encodeURIComponent(q)}`);
+			return;
+		}
 		loading = true;
 		searched = true;
 		try {
-			const res = await fetch(`/api/kanji/search?q=${encodeURIComponent(query.trim())}`);
+			const res = await fetch(`/api/kanji/search?q=${encodeURIComponent(q)}`);
 			const json = await res.json();
 			results = json.results;
 			vocab = json.vocab ?? [];
