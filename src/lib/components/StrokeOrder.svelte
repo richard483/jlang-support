@@ -46,12 +46,11 @@
 				rawSvgText = text;
 				svgContent = text.replace(/<!DOCTYPE[\s\S]*?]>\s*/m, '');
 				loaded = true;
-				// In split mode build steps immediately after loading
-				if (split) tick().then(() => buildStepSvgs());
 			});
 	});
 
-	// Re-init stroke paths whenever the animate container is (re-)mounted
+	// Re-init stroke paths whenever the animate container is (re-)mounted.
+	// totalStrokes is set here, so buildStepSvgs() must be called after initStrokes().
 	$effect(() => {
 		if (!container || !loaded) return;
 		void mode;
@@ -59,6 +58,7 @@
 			pause();
 			currentStroke = 0;
 			initStrokes();
+			if (split) buildStepSvgs();
 		});
 	});
 
