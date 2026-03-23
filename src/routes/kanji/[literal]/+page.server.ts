@@ -33,6 +33,7 @@ function deriveForms(literal: string, kunReadings: string[]): WordForm[] {
 
 		if (okurigana.endsWith('い') && !okurigana.endsWith('る')) {
 			// i-adjective (e.g. たの.しい → 楽しい)
+			const stem = `${literal}${okurigana.slice(0, -1)}`; // drop final い
 			forms.push({
 				word: fullWord,
 				reading: fullReading,
@@ -40,11 +41,12 @@ function deriveForms(literal: string, kunReadings: string[]): WordForm[] {
 				conjugation: null,
 				adjForms: [
 					{ label: 'Plain', form: fullWord },
-					{ label: 'Negative', form: `${literal}${okurigana.slice(0, -1)}くない` },
-					{ label: 'Past', form: `${literal}${okurigana.slice(0, -1)}かった` },
-					{ label: 'Past negative', form: `${literal}${okurigana.slice(0, -1)}くなかった` },
-					{ label: 'Adverbial', form: `${literal}${okurigana.slice(0, -1)}く` },
-					{ label: 'Te-form', form: `${literal}${okurigana.slice(0, -1)}くて` }
+					{ label: 'Negative', form: `${stem}くない` },
+					{ label: 'Past', form: `${stem}かった` },
+					{ label: 'Past negative', form: `${stem}くなかった` },
+					{ label: 'Te-form', form: `${stem}くて` },
+					{ label: 'Adverbial', form: `${stem}く` },
+					{ label: 'Nominalized', form: `${stem}さ` }
 				]
 			});
 		} else if (okurigana === 'る') {

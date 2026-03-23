@@ -1,4 +1,8 @@
 <script lang="ts">
+	import type { PageData } from './$types';
+
+	let { data }: { data: PageData } = $props();
+
 	let query = $state('');
 	let results = $state<{
 		literal: string;
@@ -6,7 +10,6 @@
 		on_readings: string[];
 		kun_readings: string[];
 		jlpt_level: number | null;
-		grade: number | null;
 		stroke_count: number | null;
 	}[]>([]);
 	let vocab = $state<{
@@ -24,9 +27,9 @@
 		searched = true;
 		try {
 			const res = await fetch(`/api/kanji/search?q=${encodeURIComponent(query.trim())}`);
-			const data = await res.json();
-			results = data.results;
-			vocab = data.vocab ?? [];
+			const json = await res.json();
+			results = json.results;
+			vocab = json.vocab ?? [];
 		} finally {
 			loading = false;
 		}
@@ -35,90 +38,109 @@
 	function onKeydown(e: KeyboardEvent) {
 		if (e.key === 'Enter') search();
 	}
+
+	// Carousel scroll
+	let carousel = $state<HTMLDivElement | undefined>(undefined);
+	function scrollCarousel(dir: -1 | 1) {
+		carousel?.scrollBy({ left: dir * 420, behavior: 'smooth' });
+	}
 </script>
 
 <svelte:head>
-	<title>Kanji Search</title>
+	<title>JLang Support — Japanese Learning Platform</title>
 </svelte:head>
 
-<div class="flex flex-col items-center gap-8">
-	<div class="text-center">
-		<h1 class="text-4xl font-bold text-indigo-600 mb-2">漢字サポート</h1>
-		<p class="text-gray-500 text-sm">Search kanji, compounds, or meanings</p>
-	</div>
+<!-- ── Hero Search ──────────────────────────────────────────────────────────── -->
+<section class="flex flex-col items-center text-center mb-24 max-w-4xl mx-auto pt-8">
+	<h1 class="font-headline text-5xl md:text-7xl font-black text-on-surface mb-6 tracking-tighter leading-tight">
+		Master Japanese with<br /><span class="text-primary">Editorial Intent.</span>
+	</h1>
+	<p class="font-body text-lg text-on-surface-variant mb-12 max-w-xl leading-relaxed">
+		Search characters, grammar points, or vocabulary with unparalleled depth.
+	</p>
 
-	<div class="w-full max-w-lg flex gap-2">
+	<div class="w-full relative">
+		<div class="absolute inset-y-0 left-5 flex items-center pointer-events-none">
+			<span class="material-symbols-outlined text-outline">search</span>
+		</div>
 		<input
 			type="text"
 			bind:value={query}
 			onkeydown={onKeydown}
-			placeholder="楽、青春、seishun、fun..."
-			class="flex-1 border border-gray-300 rounded-lg px-4 py-2 text-lg focus:outline-none focus:ring-2 focus:ring-indigo-400"
+			placeholder="Search kanji, compounds, or English meaning…"
+			class="w-full h-16 pl-14 pr-6 bg-surface-container-high border-none border-b-2 border-outline-variant focus:border-primary focus:ring-0 rounded-none font-headline text-xl placeholder:text-outline transition-all duration-300 outline-none shadow-sm"
 		/>
 		<button
 			onclick={search}
 			disabled={loading}
-			class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+			class="absolute right-4 top-1/2 -translate-y-1/2 px-6 py-2 bg-primary text-on-primary rounded-full font-label font-semibold text-sm hover:opacity-90 disabled:opacity-50 transition-opacity"
 		>
-			{loading ? '...' : 'Search'}
+			{loading ? '…' : 'Search'}
 		</button>
 	</div>
+</section>
 
-	{#if searched && results.length === 0 && vocab.length === 0 && !loading}
-		<p class="text-gray-500">No results found for "{query}"</p>
+<!-- ── Search Results ───────────────────────────────────────────────────────── -->
+{#if searched}
+	{#if results.length === 0 && vocab.length === 0 && !loading}
+		<p class="text-center text-on-surface-variant mb-16">No results found for "<span class="text-on-surface">{query}</span>"</p>
 	{/if}
 
-	<!-- Vocab / compound results -->
 	{#if vocab.length > 0}
-		<div class="w-full space-y-2">
-			<h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide">Words</h2>
+		<section class="mb-12">
+			<div class="flex items-end justify-between mb-5">
+				<span class="font-label text-xs uppercase tracking-[0.2em] text-secondary font-bold">Words</span>
+			</div>
 			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
 				{#each vocab as v}
-					<a href="/vocab/{encodeURIComponent(v.word)}"
-						class="bg-white border border-gray-200 rounded-xl p-4 hover:border-indigo-400 hover:shadow-sm transition-all">
-						<div class="flex items-start justify-between gap-2">
-							<span class="text-3xl font-thin leading-none">{v.word}</span>
+					<a
+						href="/vocab/{encodeURIComponent(v.word)}"
+						class="bg-surface-container-lowest p-5 hover:bg-surface-container-low transition-colors group"
+					>
+						<div class="flex items-start justify-between gap-2 mb-2">
+							<span class="font-headline text-3xl text-on-surface">{v.word}</span>
 							{#if v.is_common}
-								<span class="text-xs bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full shrink-0">Common</span>
+								<span class="text-xs bg-secondary-container/30 text-secondary px-2 py-0.5 rounded-full font-label shrink-0">Common</span>
 							{/if}
 						</div>
-						<p class="text-sm text-gray-500 mt-1">{v.readings.join('、')}</p>
-						<p class="text-sm text-gray-700 mt-1 line-clamp-2">{v.meanings.slice(0, 3).join('; ')}</p>
+						<p class="text-sm text-on-surface-variant font-body">{v.readings.join('、')}</p>
+						<p class="text-sm text-on-surface mt-1 font-body line-clamp-2">{v.meanings.slice(0, 3).join('; ')}</p>
 					</a>
 				{/each}
 			</div>
-		</div>
+		</section>
 	{/if}
 
-	<!-- Individual kanji results -->
 	{#if results.length > 0}
-		<div class="w-full space-y-2">
+		<section class="mb-16">
 			{#if vocab.length > 0}
-				<h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide">Kanji</h2>
+				<div class="flex items-end justify-between mb-5">
+					<span class="font-label text-xs uppercase tracking-[0.2em] text-secondary font-bold">Kanji</span>
+				</div>
 			{/if}
 			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
 				{#each results as k}
-					<a href="/kanji/{encodeURIComponent(k.literal)}"
-						class="bg-white border border-gray-200 rounded-xl p-4 hover:border-indigo-400 hover:shadow-sm transition-all">
-						<div class="flex items-start gap-3">
-							<span class="text-5xl font-thin leading-none">{k.literal}</span>
-							<div class="flex-1 min-w-0">
-								<p class="text-sm text-gray-800 truncate">{k.meanings.slice(0, 3).join(', ')}</p>
+					<a
+						href="/kanji/{encodeURIComponent(k.literal)}"
+						class="bg-surface-container-lowest p-6 hover:bg-surface-container-low transition-colors group relative overflow-hidden"
+					>
+						<div class="absolute top-3 right-4 font-headline text-5xl text-on-surface/5 select-none pointer-events-none">{k.literal}</div>
+						<div class="flex items-start gap-4">
+							<span class="font-headline text-6xl text-primary leading-none">{k.literal}</span>
+							<div class="flex-1 min-w-0 space-y-1">
+								<p class="font-body text-sm text-on-surface font-medium truncate">{k.meanings.slice(0, 3).join(', ')}</p>
 								{#if k.on_readings.length > 0}
-									<p class="text-xs text-gray-400 mt-1">音: {k.on_readings.slice(0, 3).join('、')}</p>
+									<p class="text-xs text-outline">音: {k.on_readings.slice(0, 3).join('、')}</p>
 								{/if}
 								{#if k.kun_readings.length > 0}
-									<p class="text-xs text-gray-400">訓: {k.kun_readings.slice(0, 3).join('、')}</p>
+									<p class="text-xs text-outline">訓: {k.kun_readings.slice(0, 3).join('、')}</p>
 								{/if}
-								<div class="flex gap-1 mt-2 flex-wrap">
+								<div class="flex gap-1.5 mt-2 flex-wrap">
 									{#if k.jlpt_level}
-										<span class="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">N{k.jlpt_level}</span>
-									{/if}
-									{#if k.grade}
-										<span class="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded">G{k.grade}</span>
+										<span class="text-xs font-label font-bold text-secondary tracking-widest uppercase">JLPT N{k.jlpt_level}</span>
 									{/if}
 									{#if k.stroke_count}
-										<span class="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">{k.stroke_count}画</span>
+										<span class="text-xs font-label text-outline">{k.stroke_count} strokes</span>
 									{/if}
 								</div>
 							</div>
@@ -126,6 +148,64 @@
 					</a>
 				{/each}
 			</div>
-		</div>
+		</section>
 	{/if}
-</div>
+{/if}
+
+<!-- ── Featured Discoveries ─────────────────────────────────────────────────── -->
+{#if !searched}
+	<section class="mb-16">
+		<div class="flex items-end justify-between mb-8">
+			<div>
+				<span class="font-label text-xs uppercase tracking-[0.2em] text-secondary font-bold mb-2 block">Curated Series</span>
+				<h2 class="font-headline text-4xl font-bold text-on-surface">Featured Discoveries</h2>
+			</div>
+			<div class="flex gap-3">
+				<button
+					onclick={() => scrollCarousel(-1)}
+					class="w-11 h-11 rounded-full flex items-center justify-center border border-outline-variant hover:bg-surface-container-highest transition-colors"
+					aria-label="Scroll left"
+				>
+					<span class="material-symbols-outlined text-on-surface-variant">arrow_back</span>
+				</button>
+				<button
+					onclick={() => scrollCarousel(1)}
+					class="w-11 h-11 rounded-full flex items-center justify-center bg-primary text-on-primary hover:opacity-90 transition-opacity"
+					aria-label="Scroll right"
+				>
+					<span class="material-symbols-outlined">arrow_forward</span>
+				</button>
+			</div>
+		</div>
+
+		<div bind:this={carousel} class="flex gap-5 overflow-x-auto hide-scrollbar pb-4 snap-x snap-mandatory">
+			{#each data.featured as k, i}
+				<a
+					href="/kanji/{encodeURIComponent(k.literal)}"
+					class="min-w-[300px] md:min-w-[360px] snap-start bg-surface-container-low p-10 group relative overflow-hidden transition-all duration-500 hover:bg-surface-container-lowest shrink-0"
+				>
+					<div class="absolute top-4 right-4 font-headline text-6xl text-outline-variant/30 pointer-events-none select-none tabular-nums">
+						{String(i + 1).padStart(2, '0')}
+					</div>
+					<div class="mb-8 flex justify-center">
+						<span class="font-headline text-9xl text-primary drop-shadow-sm select-none leading-none">{k.literal}</span>
+					</div>
+					<div class="space-y-1.5">
+						<p class="font-headline text-xl font-bold text-on-surface">{k.meanings[0]}</p>
+						{#if k.meanings[1]}
+							<p class="text-on-surface-variant font-body text-sm">{k.meanings.slice(1, 3).join(', ')}</p>
+						{/if}
+					</div>
+					<div class="mt-6 flex items-center gap-4 pt-5 border-t border-outline-variant/30">
+						{#if k.jlpt_level}
+							<span class="text-xs font-label font-bold text-secondary tracking-widest uppercase">JLPT N{k.jlpt_level}</span>
+						{/if}
+						{#if k.stroke_count}
+							<span class="text-xs font-label font-bold text-outline tracking-widest uppercase">{k.stroke_count} Strokes</span>
+						{/if}
+					</div>
+				</a>
+			{/each}
+		</div>
+	</section>
+{/if}

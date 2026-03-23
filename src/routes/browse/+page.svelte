@@ -16,67 +16,70 @@
 </script>
 
 <svelte:head>
-	<title>Browse Kanji</title>
+	<title>Browse Kanji — JLang Support</title>
 </svelte:head>
 
-<div class="space-y-6">
-	<h1 class="text-2xl font-bold">Browse Kanji</h1>
+<div class="space-y-8 py-4">
+	<div class="border-b border-outline-variant/30 pb-4">
+		<h1 class="font-headline text-4xl font-bold text-on-surface">Browse Kanji</h1>
+		<p class="text-sm font-label text-outline mt-1">{total.toLocaleString()} characters{filters.jlpt || filters.grade ? ' matching filters' : ' total'}</p>
+	</div>
 
 	<!-- Filters -->
-	<div class="flex gap-3 flex-wrap items-center bg-white border border-gray-200 rounded-xl p-4">
-		<span class="text-sm text-gray-500">Filter:</span>
-
-		<!-- JLPT -->
-		<div class="flex gap-1">
+	<div class="flex gap-4 flex-wrap items-center">
+		<span class="text-xs font-label font-bold uppercase tracking-widest text-outline">JLPT</span>
+		<div class="flex gap-1.5">
 			{#each [5, 4, 3, 2, 1] as n}
 				<a
 					href={buildUrl({ ...filters, jlpt: filters.jlpt === String(n) ? null : n, page: 1 })}
-					class="text-xs px-2.5 py-1 rounded-full transition-colors {filters.jlpt === String(n)
-						? 'bg-blue-600 text-white'
-						: 'bg-blue-100 text-blue-700 hover:bg-blue-200'}"
+					class="text-xs font-label font-bold px-3 py-1.5 rounded-full transition-colors {filters.jlpt === String(n)
+						? 'bg-secondary text-on-secondary'
+						: 'bg-secondary-container/20 text-secondary hover:bg-secondary-container/40'}"
 				>N{n}</a>
 			{/each}
 		</div>
-
-		<!-- Grade -->
-		<div class="flex gap-1">
+		<span class="text-xs font-label font-bold uppercase tracking-widest text-outline ml-4">Grade</span>
+		<div class="flex gap-1.5">
 			{#each [1, 2, 3, 4, 5, 6] as n}
 				<a
 					href={buildUrl({ ...filters, grade: filters.grade === String(n) ? null : n, page: 1 })}
-					class="text-xs px-2.5 py-1 rounded-full transition-colors {filters.grade === String(n)
-						? 'bg-green-600 text-white'
-						: 'bg-green-100 text-green-700 hover:bg-green-200'}"
+					class="text-xs font-label font-bold px-3 py-1.5 rounded-full transition-colors {filters.grade === String(n)
+						? 'bg-primary text-on-primary'
+						: 'bg-primary/10 text-primary hover:bg-primary/20'}"
 				>G{n}</a>
 			{/each}
 		</div>
-
 		{#if filters.jlpt || filters.grade || filters.radical}
-			<a href="/browse" class="text-xs text-gray-400 hover:text-red-500 ml-auto">Clear filters</a>
+			<a href="/browse" class="text-xs font-label text-outline hover:text-error ml-auto transition-colors">Clear filters</a>
 		{/if}
 	</div>
 
-	<p class="text-sm text-gray-500">{total.toLocaleString()} kanji{filters.jlpt || filters.grade ? '' : ' total'}</p>
-
 	<!-- Grid -->
-	<div class="grid grid-cols-6 sm:grid-cols-8 lg:grid-cols-10 gap-1.5">
+	<div class="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 gap-1.5">
 		{#each kanji as k}
 			<a
 				href="/kanji/{encodeURIComponent(k.literal)}"
 				title="{k.meanings.slice(0, 2).join(', ')}"
-				class="aspect-square flex items-center justify-center text-2xl bg-white border border-gray-200 rounded-lg hover:border-indigo-400 hover:bg-indigo-50 transition-all"
+				class="aspect-square flex items-center justify-center font-headline text-2xl bg-surface-container-lowest hover:bg-surface-container-low hover:text-primary transition-colors"
 			>{k.literal}</a>
 		{/each}
 	</div>
 
 	<!-- Pagination -->
 	{#if totalPages > 1}
-		<div class="flex items-center gap-2 justify-center">
+		<div class="flex items-center gap-3 justify-center pt-4">
 			{#if page > 1}
-				<a href={buildUrl({ ...filters, page: page - 1 })} class="px-3 py-1.5 text-sm bg-white border border-gray-200 rounded-lg hover:border-indigo-400">← Prev</a>
+				<a href={buildUrl({ ...filters, page: page - 1 })}
+					class="px-4 py-2 text-sm font-label bg-surface-container-low hover:bg-surface-container transition-colors rounded-full">
+					← Prev
+				</a>
 			{/if}
-			<span class="text-sm text-gray-500">Page {page} / {totalPages}</span>
+			<span class="text-sm font-label text-outline">Page {page} of {totalPages}</span>
 			{#if page < totalPages}
-				<a href={buildUrl({ ...filters, page: page + 1 })} class="px-3 py-1.5 text-sm bg-white border border-gray-200 rounded-lg hover:border-indigo-400">Next →</a>
+				<a href={buildUrl({ ...filters, page: page + 1 })}
+					class="px-4 py-2 text-sm font-label bg-surface-container-low hover:bg-surface-container transition-colors rounded-full">
+					Next →
+				</a>
 			{/if}
 		</div>
 	{/if}
