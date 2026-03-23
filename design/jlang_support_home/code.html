@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>JLang Support - Archaic Modern Japanese Learning</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700;900&amp;family=Plus+Jakarta+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "error-container": "#ffdad6",
+                        "inverse-primary": "#ffb693",
+                        "outline": "#8c7166",
+                        "on-tertiary-container": "#373737",
+                        "on-tertiary": "#ffffff",
+                        "inverse-surface": "#32302d",
+                        "tertiary-container": "#a0a0a0",
+                        "secondary-container": "#b6ccff",
+                        "on-secondary": "#ffffff",
+                        "surface-container-highest": "#e7e1dd",
+                        "background": "#fff8f4",
+                        "secondary": "#485e8a",
+                        "surface-container-low": "#f9f2ee",
+                        "surface": "#fff8f4",
+                        "primary-fixed-dim": "#ffb693",
+                        "on-tertiary-fixed-variant": "#474747",
+                        "primary-container": "#ff7a30",
+                        "surface-tint": "#a04100",
+                        "on-tertiary-fixed": "#1b1b1b",
+                        "on-secondary-fixed-variant": "#304671",
+                        "on-error-container": "#93000a",
+                        "primary-fixed": "#ffdbcc",
+                        "on-error": "#ffffff",
+                        "outline-variant": "#dfc0b3",
+                        "on-surface": "#1d1b19",
+                        "on-surface-variant": "#584238",
+                        "tertiary-fixed": "#e2e2e2",
+                        "surface-container": "#f3ede9",
+                        "secondary-fixed": "#d8e2ff",
+                        "primary": "#a04100",
+                        "on-secondary-container": "#405681",
+                        "surface-variant": "#e7e1dd",
+                        "on-secondary-fixed": "#001a41",
+                        "error": "#ba1a1a",
+                        "surface-container-lowest": "#ffffff",
+                        "on-background": "#1d1b19",
+                        "on-primary-fixed-variant": "#7a2f00",
+                        "on-primary": "#ffffff",
+                        "on-primary-fixed": "#351000",
+                        "tertiary": "#5e5e5e",
+                        "secondary-fixed-dim": "#b0c6f9",
+                        "on-primary-container": "#622400",
+                        "inverse-on-surface": "#f6f0eb",
+                        "tertiary-fixed-dim": "#c6c6c6",
+                        "surface-bright": "#fff8f4",
+                        "surface-container-high": "#ede7e3",
+                        "surface-dim": "#dfd9d5"
+                    },
+                    fontFamily: {
+                        "headline": ["Noto Serif JP", "serif"],
+                        "body": ["Plus Jakarta Sans", "sans-serif"],
+                        "label": ["Plus Jakarta Sans", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #fff8f4;
+            color: #1d1b19;
+        }
+        .editorial-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 1.5rem;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-background selection:bg-primary-fixed selection:text-on-primary-fixed">
+<!-- TopNavBar -->
+<nav class="fixed top-0 w-full z-50 bg-[#fff8f4] dark:bg-stone-950/80 backdrop-blur-md border-none bg-[#f9f2ee]/50 dark:bg-stone-900/50">
+<div class="flex justify-between items-center w-full px-8 py-4 max-w-screen-2xl mx-auto">
+<div class="text-2xl font-bold font-['Noto_Serif_JP'] text-[#a04100] dark:text-[#ff7a30]">
+                JLang Support
+            </div>
+<div class="hidden md:flex items-center gap-12 font-['Noto_Serif_JP'] text-lg font-medium tracking-tight">
+<a class="text-[#a04100] dark:text-[#ff7a30] border-b-2 border-[#a04100] pb-1 hover:opacity-80 transition-all duration-300" href="#">Browse</a>
+<a class="text-[#485e8a] dark:text-stone-400 hover:text-[#a04100] transition-colors hover:opacity-80 transition-all duration-300" href="#">Bookmarks</a>
+<a class="text-[#485e8a] dark:text-stone-400 hover:text-[#a04100] transition-colors hover:opacity-80 transition-all duration-300" href="#">Conjugate</a>
+</div>
+<div class="flex items-center gap-4">
+<button class="scale-95 active:scale-100 transition-transform text-[#a04100]">
+<span class="material-symbols-outlined text-3xl" data-icon="account_circle">account_circle</span>
+</button>
+</div>
+</div>
+</nav>
+<main class="pt-32 pb-20 px-6 max-w-screen-2xl mx-auto min-h-screen">
+<!-- Hero Search Section -->
+<section class="flex flex-col items-center justify-center text-center mb-24 max-w-4xl mx-auto">
+<h1 class="font-headline text-5xl md:text-7xl font-black text-on-surface mb-8 tracking-tighter leading-tight">
+                Master Japanese with <br/><span class="text-primary">Editorial Intent.</span>
+</h1>
+<p class="font-body text-lg text-on-surface-variant mb-12 max-w-2xl leading-relaxed">
+                A curated environment for the sophisticated scholar. Search characters, grammar points, or vocabulary with unparalleled depth.
+            </p>
+<div class="w-full relative group">
+<div class="absolute inset-y-0 left-6 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-outline" data-icon="search">search</span>
+</div>
+<input class="w-full h-20 pl-16 pr-8 bg-surface-container-high border-none border-b-2 border-outline-variant focus:border-primary focus:ring-0 rounded-none font-headline text-2xl placeholder:text-outline transition-all duration-500 shadow-sm" placeholder="Search Kanji, Romaji, or English..." type="text"/>
+<div class="absolute inset-y-0 right-6 flex items-center">
+<kbd class="hidden md:inline-flex items-center h-8 px-3 rounded-lg border border-outline-variant font-sans text-xs font-medium text-outline">
+                        ⌘K
+                    </kbd>
+</div>
+</div>
+</section>
+<!-- Featured Discoveries Carousel -->
+<section class="mb-32">
+<div class="flex items-end justify-between mb-8">
+<div>
+<span class="font-label text-sm uppercase tracking-[0.2em] text-secondary font-bold mb-2 block">Curated Series</span>
+<h2 class="font-headline text-4xl font-bold">Featured Discoveries</h2>
+</div>
+<div class="flex gap-4">
+<button class="w-12 h-12 rounded-full flex items-center justify-center border border-outline-variant hover:bg-surface-container-highest transition-colors">
+<span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+</button>
+<button class="w-12 h-12 rounded-full flex items-center justify-center bg-primary text-on-primary hover:opacity-90 transition-opacity">
+<span class="material-symbols-outlined" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+</div>
+<div class="flex gap-6 overflow-x-auto hide-scrollbar pb-8 snap-x">
+<!-- Kanji Card 1 -->
+<div class="min-w-[320px] md:min-w-[400px] snap-start">
+<div class="bg-surface-container-low p-10 group relative overflow-hidden transition-all duration-500 hover:bg-surface-container-lowest">
+<div class="absolute top-4 right-4 text-outline-variant font-headline text-6xl opacity-20 pointer-events-none">01</div>
+<div class="mb-8 flex justify-center">
+<span class="font-headline text-9xl text-primary drop-shadow-sm select-none">旅</span>
+</div>
+<div class="space-y-2">
+<h3 class="font-headline text-2xl font-bold">Tabi</h3>
+<p class="text-on-surface-variant font-body">Journey, Trip, Voyage</p>
+</div>
+<div class="mt-8 flex items-center gap-4 pt-6 border-t border-outline-variant/30">
+<span class="text-xs font-bold text-secondary tracking-widest uppercase">JLPT N3</span>
+<span class="text-xs font-bold text-outline tracking-widest uppercase">10 Strokes</span>
+</div>
+</div>
+</div>
+<!-- Kanji Card 2 -->
+<div class="min-w-[320px] md:min-w-[400px] snap-start">
+<div class="bg-surface-container-low p-10 group relative overflow-hidden transition-all duration-500 hover:bg-surface-container-lowest">
+<div class="absolute top-4 right-4 text-outline-variant font-headline text-6xl opacity-20 pointer-events-none">02</div>
+<div class="mb-8 flex justify-center">
+<span class="font-headline text-9xl text-secondary drop-shadow-sm select-none">影</span>
+</div>
+<div class="space-y-2">
+<h3 class="font-headline text-2xl font-bold">Kage</h3>
+<p class="text-on-surface-variant font-body">Shadow, Silhouette, Reflection</p>
+</div>
+<div class="mt-8 flex items-center gap-4 pt-6 border-t border-outline-variant/30">
+<span class="text-xs font-bold text-secondary tracking-widest uppercase">JLPT N1</span>
+<span class="text-xs font-bold text-outline tracking-widest uppercase">15 Strokes</span>
+</div>
+</div>
+</div>
+<!-- Kanji Card 3 -->
+<div class="min-w-[320px] md:min-w-[400px] snap-start">
+<div class="bg-surface-container-low p-10 group relative overflow-hidden transition-all duration-500 hover:bg-surface-container-lowest">
+<div class="absolute top-4 right-4 text-outline-variant font-headline text-6xl opacity-20 pointer-events-none">03</div>
+<div class="mb-8 flex justify-center">
+<span class="font-headline text-9xl text-primary drop-shadow-sm select-none">静</span>
+</div>
+<div class="space-y-2">
+<h3 class="font-headline text-2xl font-bold">Shizuka</h3>
+<p class="text-on-surface-variant font-body">Quiet, Peaceful, Serene</p>
+</div>
+<div class="mt-8 flex items-center gap-4 pt-6 border-t border-outline-variant/30">
+<span class="text-xs font-bold text-secondary tracking-widest uppercase">JLPT N3</span>
+<span class="text-xs font-bold text-outline tracking-widest uppercase">14 Strokes</span>
+</div>
+</div>
+</div>
+<!-- Kanji Card 4 -->
+<div class="min-w-[320px] md:min-w-[400px] snap-start">
+<div class="bg-surface-container-low p-10 group relative overflow-hidden transition-all duration-500 hover:bg-surface-container-lowest">
+<div class="absolute top-4 right-4 text-outline-variant font-headline text-6xl opacity-20 pointer-events-none">04</div>
+<div class="mb-8 flex justify-center">
+<span class="font-headline text-9xl text-secondary drop-shadow-sm select-none">夢</span>
+</div>
+<div class="space-y-2">
+<h3 class="font-headline text-2xl font-bold">Yume</h3>
+<p class="text-on-surface-variant font-body">Dream, Vision, Illusion</p>
+</div>
+<div class="mt-8 flex items-center gap-4 pt-6 border-t border-outline-variant/30">
+<span class="text-xs font-bold text-secondary tracking-widest uppercase">JLPT N3</span>
+<span class="text-xs font-bold text-outline tracking-widest uppercase">13 Strokes</span>
+</div>
+</div>
+</div>
+</div>
+<div class="flex justify-center gap-2 mt-4">
+<div class="w-12 h-1 bg-primary"></div>
+<div class="w-12 h-1 bg-outline-variant"></div>
+<div class="w-12 h-1 bg-outline-variant"></div>
+</div>
+</section>
+<!-- Bento Resource Grid (Asymmetric Editorial Layout) -->
+<section class="mb-32">
+<div class="grid grid-cols-1 md:grid-cols-12 gap-8">
+<!-- Large Feature -->
+<div class="md:col-span-8 bg-surface-container-high relative overflow-hidden min-h-[400px] flex items-end p-12 group">
+<div class="absolute inset-0 opacity-10 group-hover:opacity-15 transition-opacity duration-700">
+<img class="w-full h-full object-cover" data-alt="Zen garden pattern with raked sand and stones" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBsO--D1KjLbF5WzbHCaZzYmwFzeOJuZ97sGOIt1Srf1wt4MM8YTYsBeReTwbQ1bPuAgKRBoTLtoT8gTy6_038UaUhrYkNOX7-5kYT7uc0mYKj1req5L2unglo3iEDkqUYAQi2eQxWJYozaMya0UkBI0W6R1uplZNVhkQv8amj24W54sj1NjuEG_xnWcvwy4wfdsIIDfMhtb4hPITsW8IDGwFnDfaz_oJZOPVxgS7XUS3LlT6N82WUrwZ7BalR_XmXQ7Pl-atfiAw"/>
+</div>
+<div class="relative z-10 max-w-lg">
+<span class="text-primary font-bold tracking-[0.3em] uppercase text-xs mb-4 block">Grammar Masterclass</span>
+<h3 class="font-headline text-4xl font-bold mb-6">The Nuances of <br/>Wa vs Ga</h3>
+<p class="font-body text-on-surface-variant mb-8">Unlock the subtle mysteries of Japanese particles with our linguistic deep-dives curated by university scholars.</p>
+<button class="px-8 py-3 bg-primary text-on-primary rounded-full font-bold hover:scale-105 transition-transform">Begin Reading</button>
+</div>
+</div>
+<!-- Secondary Cluster -->
+<div class="md:col-span-4 flex flex-col gap-8">
+<div class="bg-secondary-container/20 p-8 h-full flex flex-col justify-between">
+<div>
+<span class="material-symbols-outlined text-secondary text-4xl mb-4" data-icon="auto_stories">auto_stories</span>
+<h4 class="font-headline text-xl font-bold mb-2">Reading Room</h4>
+<p class="text-sm font-body text-on-surface-variant">Simplified news and folklore for intermediate learners.</p>
+</div>
+<a class="mt-4 inline-flex items-center text-secondary font-bold hover:underline" href="#">
+                            Explore Stories <span class="material-symbols-outlined ml-2" data-icon="arrow_right_alt">arrow_right_alt</span>
+</a>
+</div>
+<div class="bg-surface-container-high p-8 h-full flex flex-col justify-between">
+<div>
+<span class="material-symbols-outlined text-primary text-4xl mb-4" data-icon="history_edu">history_edu</span>
+<h4 class="font-headline text-xl font-bold mb-2">Kanji Etymology</h4>
+<p class="text-sm font-body text-on-surface-variant">Trace the visual history of characters from bones to brushes.</p>
+</div>
+<a class="mt-4 inline-flex items-center text-primary font-bold hover:underline" href="#">
+                            View Origins <span class="material-symbols-outlined ml-2" data-icon="arrow_right_alt">arrow_right_alt</span>
+</a>
+</div>
+</div>
+</div>
+</section>
+<!-- Support Section (Editorial & Minimalist) -->
+<section class="mb-20">
+<div class="max-w-5xl mx-auto bg-surface-container-low p-1 text-center border-y border-outline-variant/20">
+<div class="py-16 px-8 bg-surface-container-lowest">
+<h2 class="font-headline text-3xl font-bold mb-4">Sustain the Scholarship</h2>
+<p class="font-body text-on-surface-variant max-w-xl mx-auto mb-10">JLang Support is a labor of love, maintained for the global community. If these tools help your journey, consider a small gesture of support.</p>
+<div class="flex flex-col sm:flex-row items-center justify-center gap-6">
+<a class="flex items-center gap-3 px-10 py-4 bg-[#ff5e5b] text-white rounded-xl hover:shadow-xl transition-all scale-95 active:scale-100" href="#">
+<span class="material-symbols-outlined" data-icon="favorite" data-weight="fill">favorite</span>
+<span class="font-bold">Support me on Patreon</span>
+</a>
+<a class="flex items-center gap-3 px-10 py-4 bg-[#29abe2] text-white rounded-xl hover:shadow-xl transition-all scale-95 active:scale-100" href="#">
+<span class="material-symbols-outlined" data-icon="coffee" data-weight="fill">coffee</span>
+<span class="font-bold">Ko-fi</span>
+</a>
+</div>
+<div class="mt-8 flex justify-center gap-12">
+<div class="text-center">
+<span class="block text-2xl font-headline font-bold text-primary">12k+</span>
+<span class="text-xs font-bold text-outline uppercase tracking-widest">Active Learners</span>
+</div>
+<div class="text-center">
+<span class="block text-2xl font-headline font-bold text-primary">2.5k</span>
+<span class="text-xs font-bold text-outline uppercase tracking-widest">Resources</span>
+</div>
+<div class="text-center">
+<span class="block text-2xl font-headline font-bold text-primary">0</span>
+<span class="text-xs font-bold text-outline uppercase tracking-widest">Intrusive Ads</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="w-full py-12 bg-[#e7e1dd] dark:bg-stone-900 border-none mt-20">
+<div class="flex flex-col md:flex-row justify-between items-center px-10 gap-6 max-w-screen-2xl mx-auto">
+<div class="font-['Plus_Jakarta_Sans'] text-sm tracking-wide text-[#485e8a] dark:text-stone-300 opacity-90">
+                © 2024 JLang Support. All rights reserved.
+            </div>
+<div class="flex flex-wrap justify-center gap-8 font-['Plus_Jakarta_Sans'] text-sm tracking-wide">
+<a class="text-[#485e8a] dark:text-stone-400 hover:text-[#a04100] dark:hover:text-[#ff7a30] transition-colors underline" href="#">Support me on Patreon</a>
+<a class="text-[#485e8a] dark:text-stone-400 hover:text-[#a04100] dark:hover:text-[#ff7a30] transition-colors underline" href="#">Ko-fi</a>
+<a class="text-[#485e8a] dark:text-stone-400 hover:text-[#a04100] dark:hover:text-[#ff7a30] transition-colors underline" href="#">GitHub</a>
+<a class="text-[#485e8a] dark:text-stone-400 hover:text-[#a04100] dark:hover:text-[#ff7a30] transition-colors underline" href="#">Twitter</a>
+</div>
+</div>
+</footer>
+</body></html>
