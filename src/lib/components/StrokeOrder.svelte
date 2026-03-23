@@ -243,7 +243,7 @@
 					{:else}
 						<button onclick={play} class="flex items-center gap-1.5 px-4 py-2 bg-primary text-on-primary hover:opacity-90 rounded-full text-sm font-label font-medium transition-opacity">
 							<span class="material-symbols-outlined text-sm leading-none">play_arrow</span>
-							{currentStroke === 0 ? 'Play' : 'Continue'}
+							Play
 						</button>
 					{/if}
 					<button onclick={doReset} class="p-2 bg-surface-container-high hover:bg-surface-container-highest rounded-full transition-colors" title="Reset">
@@ -311,7 +311,7 @@
 					{#if playing}
 						<button onclick={pause} class="px-3 py-1.5 bg-surface-container-high hover:bg-surface-container-highest rounded-full text-sm font-label transition-colors">⏸ Pause</button>
 					{:else}
-						<button onclick={play} class="px-3 py-1.5 bg-primary text-on-primary rounded-full text-sm font-label hover:opacity-90 transition-opacity">▶ {currentStroke === 0 ? 'Play' : 'Continue'}</button>
+						<button onclick={play} class="px-3 py-1.5 bg-primary text-on-primary rounded-full text-sm font-label hover:opacity-90 transition-opacity">▶ Play</button>
 					{/if}
 					<button onclick={doReset} class="px-3 py-1.5 bg-surface-container-high hover:bg-surface-container-highest rounded-full text-sm font-label transition-colors">↺</button>
 					<button onclick={showAll} class="px-3 py-1.5 bg-surface-container-high hover:bg-surface-container-highest rounded-full text-sm font-label transition-colors">Show all</button>

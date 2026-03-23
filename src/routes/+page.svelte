@@ -104,7 +104,7 @@
 			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
 				{#each vocab as v}
 					<a
-						href="/vocab/{encodeURIComponent(v.word)}"
+						href={/^[\u4E00-\u9FFF\u3400-\u4DBF\uF900-\uFAFF]$/.test(v.word) ? `/kanji/${encodeURIComponent(v.word)}` : `/vocab/${encodeURIComponent(v.word)}`}
 						class="bg-surface-container-lowest p-5 hover:bg-surface-container-low transition-colors group"
 					>
 						<div class="flex items-start justify-between gap-2 mb-2">
