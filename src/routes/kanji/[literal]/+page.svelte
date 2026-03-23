@@ -1,6 +1,6 @@
 <script lang="ts">
 	import StrokeOrder from '$lib/components/StrokeOrder.svelte';
-	import { formatReading } from '$lib/utils/kana';
+	import { formatReading, katakanaToHiragana } from '$lib/utils/kana';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -122,7 +122,7 @@
 							{#each kanji.on_readings as r}
 								{@const fr = formatReading(r)}
 								<span class="font-headline text-lg text-on-surface leading-tight">
-									{fr.kana}
+									{katakanaToHiragana(fr.kana)}
 									<span class="font-label text-sm text-outline ml-1 font-normal">{fr.romaji}</span>
 								</span>
 							{/each}

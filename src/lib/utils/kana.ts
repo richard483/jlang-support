@@ -130,6 +130,16 @@ export function kanaToRomaji(input: string): string {
 }
 
 /**
+ * Convert katakana to hiragana (U+30A1–U+30F6 → U+3041–U+3096).
+ * Non-katakana characters are passed through unchanged.
+ */
+export function katakanaToHiragana(input: string): string {
+	return input.replace(/[\u30A1-\u30F6]/g, (ch) =>
+		String.fromCharCode(ch.charCodeAt(0) - 0x60)
+	);
+}
+
+/**
  * Format a KanjiDic2 reading for display: strips the dot, returns kana + romaji.
  * e.g. "たの.しい" → { kana: "たのしい", romaji: "tanoshii" }
  */

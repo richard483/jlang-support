@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { PageData } from './$types';
-	import { kanaToRomaji } from '$lib/utils/kana';
+	import { kanaToRomaji, katakanaToHiragana } from '$lib/utils/kana';
 
 	let { data }: { data: PageData } = $props();
 
@@ -131,7 +131,7 @@
 							<div class="flex-1 min-w-0 space-y-1">
 								<p class="font-body text-sm text-on-surface font-medium truncate">{k.meanings.slice(0, 3).join(', ')}</p>
 								{#if k.on_readings.length > 0}
-									<p class="text-xs text-outline">音: {k.on_readings.slice(0, 3).join('、')}</p>
+									<p class="text-xs text-outline">音: {k.on_readings.slice(0, 3).map(r => katakanaToHiragana(r)).join('、')}</p>
 								{/if}
 								{#if k.kun_readings.length > 0}
 									<p class="text-xs text-outline">訓: {k.kun_readings.slice(0, 3).join('、')}</p>
@@ -196,7 +196,7 @@
 						<div class="mb-3">
 							<p class="font-headline text-2xl font-bold text-on-surface tracking-tight">
 								{k.on_readings.length > 0
-									? k.on_readings.join(' / ')
+									? k.on_readings.map(r => katakanaToHiragana(r)).join(' / ')
 									: k.kun_readings.slice(0, 2).map(r => r.replace(/\./g, '')).join(' / ')}
 							</p>
 							<p class="font-label text-sm text-outline mt-0.5 tracking-wide">
