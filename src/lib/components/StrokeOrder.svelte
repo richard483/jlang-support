@@ -56,7 +56,6 @@
 		void mode;
 		tick().then(() => {
 			pause();
-			currentStroke = 0;
 			initStrokes();
 			if (split) buildStepSvgs();
 		});
@@ -94,7 +93,7 @@
 		strokePaths.forEach((path) => {
 			const len = path.getTotalLength();
 			path.style.strokeDasharray = String(len);
-			path.style.strokeDashoffset = String(len);
+			path.style.strokeDashoffset = '0';
 			path.style.transition = 'none';
 			path.style.fill = 'none';
 			path.style.stroke = '#a04100';
@@ -102,6 +101,7 @@
 			path.style.strokeLinecap = 'round';
 			path.style.strokeLinejoin = 'round';
 		});
+		currentStroke = totalStrokes;
 	}
 
 	// ── animate controls ──────────────────────────────────────────────────────
