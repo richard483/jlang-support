@@ -6,10 +6,11 @@ export const load: PageServerLoad = async () => {
 		literal: string;
 		meanings: string[];
 		on_readings: string[];
+		kun_readings: string[];
 		jlpt_level: number | null;
 		stroke_count: number | null;
 	}>(
-		`SELECT literal, meanings, on_readings, jlpt_level, stroke_count
+		`SELECT literal, meanings, on_readings, kun_readings, jlpt_level, stroke_count
 		 FROM kanji
 		 WHERE jlpt_level IS NOT NULL
 		   AND meanings IS NOT NULL

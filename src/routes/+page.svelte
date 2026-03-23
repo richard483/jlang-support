@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { PageData } from './$types';
+	import { kanaToRomaji } from '$lib/utils/kana';
 
 	let { data }: { data: PageData } = $props();
 
@@ -187,14 +188,26 @@
 					<div class="absolute top-4 right-4 font-headline text-6xl text-outline-variant/30 pointer-events-none select-none tabular-nums">
 						{String(i + 1).padStart(2, '0')}
 					</div>
-					<div class="mb-8 flex justify-center">
+					<div class="mb-6 flex justify-center">
 						<span class="font-headline text-9xl text-primary drop-shadow-sm select-none leading-none">{k.literal}</span>
 					</div>
-					<div class="space-y-1.5">
-						<p class="font-headline text-xl font-bold text-on-surface">{k.meanings[0]}</p>
-						{#if k.meanings[1]}
-							<p class="text-on-surface-variant font-body text-sm">{k.meanings.slice(1, 3).join(', ')}</p>
-						{/if}
+					<!-- Reading: on-yomi first, fall back to first kun-yomi -->
+					{#if k.on_readings.length > 0 || k.kun_readings.length > 0}
+						<div class="mb-3">
+							<p class="font-headline text-2xl font-bold text-on-surface tracking-tight">
+								{k.on_readings.length > 0
+									? k.on_readings.join(' / ')
+									: k.kun_readings.slice(0, 2).map(r => r.replace(/\./g, '')).join(' / ')}
+							</p>
+							<p class="font-label text-sm text-outline mt-0.5 tracking-wide">
+								{k.on_readings.length > 0
+									? k.on_readings.map(r => kanaToRomaji(r)).join(' / ')
+									: k.kun_readings.slice(0, 2).map(r => kanaToRomaji(r)).join(' / ')}
+							</p>
+						</div>
+					{/if}
+					<div class="space-y-1">
+						<p class="font-body text-sm text-on-surface-variant">{k.meanings.slice(0, 3).join(', ')}</p>
 					</div>
 					<div class="mt-6 flex items-center gap-4 pt-5 border-t border-outline-variant/30">
 						{#if k.jlpt_level}

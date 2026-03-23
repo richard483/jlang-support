@@ -1,5 +1,6 @@
 <script lang="ts">
 	import StrokeOrder from '$lib/components/StrokeOrder.svelte';
+	import { formatReading } from '$lib/utils/kana';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -107,31 +108,53 @@
 				{heroTitle()}
 			</h1>
 
-			<!-- Meanings as tags -->
-			<div class="flex flex-wrap gap-2">
-				{#each kanji.meanings.slice(0, 5) as m}
-					<span class="px-3 py-1 bg-surface-container-high text-on-surface-variant text-sm font-label rounded-full">{m}</span>
-				{/each}
-			</div>
+			<!-- Primary meaning — large and clear -->
+			<p class="font-body text-lg text-on-surface-variant leading-snug italic">
+				{kanji.meanings.slice(0, 4).join(' · ')}
+			</p>
 
-			<!-- Readings -->
-			<div class="space-y-2">
+			<!-- Readings with romaji -->
+			<div class="space-y-3">
 				{#if kanji.on_readings.length > 0}
-					<div class="flex items-baseline gap-3">
-						<span class="text-[10px] font-label font-bold uppercase tracking-widest text-outline w-10 shrink-0">音</span>
-						<p class="font-headline text-base text-on-surface">{kanji.on_readings.join('　')}</p>
+					<div class="space-y-0.5">
+						<span class="text-[10px] font-label font-bold uppercase tracking-widest text-outline block">On-yomi (音読み)</span>
+						<div class="flex flex-wrap gap-x-4 gap-y-1">
+							{#each kanji.on_readings as r}
+								{@const fr = formatReading(r)}
+								<span class="font-headline text-lg text-on-surface leading-tight">
+									{fr.kana}
+									<span class="font-label text-sm text-outline ml-1 font-normal">{fr.romaji}</span>
+								</span>
+							{/each}
+						</div>
 					</div>
 				{/if}
 				{#if kanji.kun_readings.length > 0}
-					<div class="flex items-baseline gap-3">
-						<span class="text-[10px] font-label font-bold uppercase tracking-widest text-outline w-10 shrink-0">訓</span>
-						<p class="font-headline text-base text-on-surface">{kanji.kun_readings.join('　')}</p>
+					<div class="space-y-0.5">
+						<span class="text-[10px] font-label font-bold uppercase tracking-widest text-outline block">Kun-yomi (訓読み)</span>
+						<div class="flex flex-wrap gap-x-4 gap-y-1">
+							{#each kanji.kun_readings as r}
+								{@const fr = formatReading(r)}
+								<span class="font-headline text-lg text-on-surface leading-tight">
+									{fr.kana}
+									<span class="font-label text-sm text-outline ml-1 font-normal">{fr.romaji}</span>
+								</span>
+							{/each}
+						</div>
 					</div>
 				{/if}
 				{#if kanji.nanori && kanji.nanori.length > 0}
-					<div class="flex items-baseline gap-3">
-						<span class="text-[10px] font-label font-bold uppercase tracking-widest text-outline w-10 shrink-0">名</span>
-						<p class="font-headline text-base text-on-surface-variant">{kanji.nanori.join('　')}</p>
+					<div class="space-y-0.5">
+						<span class="text-[10px] font-label font-bold uppercase tracking-widest text-outline block">Names (名乗り)</span>
+						<div class="flex flex-wrap gap-x-4 gap-y-1">
+							{#each kanji.nanori as r}
+								{@const fr = formatReading(r)}
+								<span class="font-headline text-base text-on-surface-variant leading-tight">
+									{fr.kana}
+									<span class="font-label text-sm text-outline ml-1 font-normal">{fr.romaji}</span>
+								</span>
+							{/each}
+						</div>
 					</div>
 				{/if}
 			</div>
