@@ -85,6 +85,9 @@
 		const orderGroup = svg.querySelector('[id$="StrokeOrder"]') as SVGGElement | null;
 		if (orderGroup) orderGroup.style.display = 'none';
 
+		const numGroup = svg.querySelector('[id*="StrokeNumbers"]') as SVGGElement | null;
+		if (numGroup) numGroup.style.display = 'none';
+
 		strokePaths = getOrderedPaths(svg as SVGSVGElement);
 		totalStrokes = strokePaths.length;
 
@@ -167,7 +170,7 @@
 			svg.setAttribute('height', '80');
 
 			const numGroup = svg.querySelector('[id*="StrokeNumbers"]') as SVGGElement | null;
-			if (numGroup) { numGroup.style.display = ''; numGroup.style.fontSize = '9px'; }
+			if (numGroup) numGroup.style.display = 'none';
 
 			const orderGroup = svg.querySelector('[id$="StrokeOrder"]') as SVGGElement | null;
 			if (orderGroup) orderGroup.style.display = 'none';
@@ -189,16 +192,6 @@
 					path.style.display = 'none';
 				}
 			});
-
-			if (numGroup) {
-				Array.from(numGroup.querySelectorAll('text')).forEach((t, j) => {
-					if (j > stepIdx) (t as SVGTextElement).style.display = 'none';
-					else if (j === stepIdx) {
-						(t as SVGTextElement).style.fill = '#a04100';
-						(t as SVGTextElement).style.fontWeight = 'bold';
-					}
-				});
-			}
 
 			results.push(serializer.serializeToString(svg));
 		}
