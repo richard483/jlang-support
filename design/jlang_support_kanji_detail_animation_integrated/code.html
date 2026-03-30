@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+
+<html lang="ja"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>JLang Support - Kanji Detail: 楽</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700;900&amp;family=Plus+Jakarta+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "surface-bright": "#fff8f4",
+              "primary-container": "#ff7a30",
+              "on-surface-variant": "#584238",
+              "on-tertiary-fixed": "#1b1b1b",
+              "on-primary-fixed-variant": "#7a2f00",
+              "on-secondary-fixed-variant": "#304671",
+              "primary": "#a04100",
+              "on-surface": "#1d1b19",
+              "surface-variant": "#e7e1dd",
+              "on-primary-fixed": "#351000",
+              "surface-container-highest": "#e7e1dd",
+              "on-tertiary-fixed-variant": "#474747",
+              "on-secondary": "#ffffff",
+              "inverse-surface": "#32302d",
+              "outline": "#8c7166",
+              "surface-container-lowest": "#ffffff",
+              "tertiary-container": "#a0a0a0",
+              "on-error": "#ffffff",
+              "secondary-fixed": "#d8e2ff",
+              "primary-fixed": "#ffdbcc",
+              "tertiary": "#5e5e5e",
+              "secondary-container": "#b6ccff",
+              "error-container": "#ffdad6",
+              "surface-dim": "#dfd9d5",
+              "surface-container-high": "#ede7e3",
+              "surface-container": "#f3ede9",
+              "secondary-fixed-dim": "#b0c6f9",
+              "tertiary-fixed": "#e2e2e2",
+              "outline-variant": "#dfc0b3",
+              "on-primary": "#ffffff",
+              "on-background": "#1d1b19",
+              "background": "#fff8f4",
+              "surface": "#fff8f4",
+              "on-error-container": "#93000a",
+              "surface-tint": "#a04100",
+              "secondary": "#485e8a",
+              "on-primary-container": "#622400",
+              "inverse-primary": "#ffb693",
+              "tertiary-fixed-dim": "#c6c6c6",
+              "surface-container-low": "#f9f2ee",
+              "on-secondary-fixed": "#001a41",
+              "error": "#ba1a1a",
+              "primary-fixed-dim": "#ffb693",
+              "on-tertiary-container": "#373737",
+              "on-tertiary": "#ffffff",
+              "on-secondary-container": "#405681",
+              "inverse-on-surface": "#f6f0eb"
+            },
+            fontFamily: {
+              "headline": ["Noto Serif JP", "serif"],
+              "body": ["Plus Jakarta Sans", "sans-serif"],
+              "label": ["Plus Jakarta Sans", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .stroke-grid {
+            background-image: linear-gradient(#dfc0b3 1px, transparent 1px), linear-gradient(90deg, #dfc0b3 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        .glass-nav {
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        /* Custom animation for kanji drawing simulation */
+        @keyframes draw {
+            to { stroke-dashoffset: 0; }
+        }
+        .stroke-path {
+            stroke-dasharray: 1000;
+            stroke-dashoffset: 1000;
+            animation: draw 3s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body class="bg-surface font-body text-on-surface min-h-screen flex flex-col selection:bg-primary-fixed selection:text-on-primary-fixed">
+<!-- TopNavBar -->
+<nav class="bg-[#fff8f4] dark:bg-stone-950 backdrop-blur-md bg-opacity-90 docked full-width top-0 z-50 sticky">
+<div class="flex justify-between items-center w-full px-8 py-4 max-w-7xl mx-auto">
+<div class="font-['Noto_Serif_JP'] text-2xl font-bold text-[#a04100] dark:text-[#ff7a30]">
+            JLang Support
+        </div>
+<div class="hidden md:flex items-center space-x-8">
+<a class="text-[#a04100] dark:text-[#ff7a30] font-bold border-b-2 border-[#a04100] pb-1 font-['Noto_Serif_JP'] text-lg tracking-tight" href="#">Browse</a>
+<a class="text-[#485e8a] dark:text-stone-400 hover:text-[#a04100] transition-colors font-['Noto_Serif_JP'] text-lg tracking-tight" href="#">Bookmarks</a>
+<a class="text-[#485e8a] dark:text-stone-400 hover:text-[#a04100] transition-colors font-['Noto_Serif_JP'] text-lg tracking-tight" href="#">Conjugate</a>
+</div>
+<div class="flex items-center space-x-4">
+<button class="p-2 rounded-full hover:bg-[#f9f2ee] dark:hover:bg-stone-800 transition-all duration-300">
+<span class="material-symbols-outlined text-[#a04100] dark:text-[#ff7a30]">search</span>
+</button>
+<button class="p-2 rounded-full hover:bg-[#f9f2ee] dark:hover:bg-stone-800 transition-all duration-300">
+<span class="material-symbols-outlined text-[#a04100] dark:text-[#ff7a30]">account_circle</span>
+</button>
+</div>
+</div>
+</nav>
+<main class="flex-grow max-w-7xl mx-auto w-full px-6 py-12 space-y-16">
+<!-- Hero Section: Kanji Display -->
+<section class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-end">
+<div class="lg:col-span-5 flex flex-col space-y-6">
+<div class="flex items-baseline space-x-4">
+<h1 class="font-headline text-5xl md:text-7xl font-bold text-primary tracking-tighter">
+                    Tanoshii <span class="text-secondary font-light">/</span> Tanoshimu
+                </h1>
+</div>
+<div class="flex items-center space-x-4">
+<span class="px-3 py-1 bg-surface-container-high rounded-full text-sm font-label uppercase tracking-widest text-on-surface-variant">Music</span>
+<span class="px-3 py-1 bg-surface-container-high rounded-full text-sm font-label uppercase tracking-widest text-on-surface-variant">Comfort</span>
+</div>
+<p class="text-xl text-on-surface-variant leading-relaxed max-w-md italic font-headline">
+                A core kanji representing the spectrum of joy, from the structured harmony of music to the internal state of comfort and ease.
+            </p>
+</div>
+<div class="lg:col-span-7 flex justify-center lg:justify-end relative">
+<!-- Large Kanji Art -->
+<div class="relative group">
+<div class="absolute -inset-8 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-all duration-700"></div>
+<div class="text-[12rem] md:text-[20rem] font-headline leading-none text-on-surface selection:bg-transparent relative">
+                    楽
+                </div>
+</div>
+</div>
+</section>
+<!-- Stroke Order Study -->
+<section class="space-y-8">
+<div class="flex items-center justify-between border-b border-outline-variant/30 pb-4">
+<h2 class="font-headline text-3xl font-bold text-secondary">Stroke Order Study</h2>
+<span class="font-label text-xs uppercase tracking-[0.2em] text-outline">13 Strokes Total</span>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-12">
+<!-- Animation Focus Area -->
+<div class="lg:col-span-5 space-y-4">
+<div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/20 shadow-sm relative aspect-square flex flex-col items-center justify-center overflow-hidden group">
+<!-- Guidelines Overlay -->
+<div class="absolute inset-0 opacity-5 pointer-events-none">
+<div class="absolute inset-x-0 top-1/2 border-t border-on-surface"></div>
+<div class="absolute inset-y-0 left-1/2 border-l border-on-surface"></div>
+<div class="absolute inset-0 border border-on-surface m-12 rounded-full border-dashed"></div>
+</div>
+<!-- Simulated Real-time Drawing -->
+<div class="relative w-full h-full flex items-center justify-center p-12">
+<img alt="Kanji Stroke Animation" class="w-full h-full object-contain transition-transform duration-500 group-hover:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBIPVqPrMDf7nb0jG95BH0geoznsvesmdo_EGpKhGGYE97aXSeZrtEhPJup9yIWRMXjCwVS7jKcpiNQxcKBLv7o410yAL9kuO4BAuTFQFFks2ScAFQ7oAToeZEV8xCZ6VWCavNogZqlHZRHd8HshvNsaabxGqd9AcDQ_K7Rd6xwGkG0NOySFL06sHVjL2dpr-tn1jBcIQbtg3VXwVeDLdnBmZZActDy03eT3bOp-mEfMbjyFO35DRKkvFztfjLhme8rxrR475P9ig"/>
+<!-- Text overlay for instructional feel -->
+<div class="absolute bottom-6 left-6 flex items-center space-x-2">
+<span class="w-2 h-2 bg-primary rounded-full animate-pulse"></span>
+<span class="font-label text-[10px] uppercase tracking-widest text-outline">Drawing Sequence Active</span>
+</div>
+</div>
+<!-- Playback Controls (Decorative) -->
+<div class="absolute bottom-4 right-6 flex items-center space-x-4 opacity-40 hover:opacity-100 transition-opacity">
+<button class="material-symbols-outlined text-sm">replay</button>
+<button class="material-symbols-outlined text-sm">pause</button>
+<div class="w-24 h-1 bg-surface-variant rounded-full overflow-hidden">
+<div class="w-2/3 h-full bg-primary rounded-full"></div>
+</div>
+</div>
+</div>
+<div class="px-2">
+<p class="text-sm text-on-surface-variant font-body leading-relaxed">
+                        Watch the flow of energy. Japanese calligraphy emphasizes the <span class="text-primary italic">brush velocity</span> and the <span class="text-primary italic">pressure</span> at the start and end of each stroke.
+                    </p>
+</div>
+</div>
+<!-- Static Steps Reference -->
+<div class="lg:col-span-7">
+<div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+<!-- Stroke sequence steps -->
+<div class="bg-surface-container-lowest p-3 aspect-square flex items-center justify-center rounded-lg shadow-sm border border-outline-variant/10">
+<img alt="Stroke 1" class="w-full h-full opacity-20 grayscale" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCPoI-ngv2osw4gSB7iHoVZvbTJ3NpQ-CIm3TLoaZKAyMAwmb2oYauszWQwbq-E4nYhvnSzr3QCDVV-5sQpvDC0C-ThP15QTSqdBq7jszNto17hzlYdQf-VTTrjyi7nS-wxGJaZ-ANvgjYwFp9r_9rt09LCGa1twq3WRfdbf5PPeQfsT3Y7ced-tXfVyrqYSE9ldqtA3I6ghQ61r4xtfdVi2wqKnPPdG1L9sL08mLMEcQCoqwzpwwcGq_UeXGraEz67sRngbW_Wow"/>
+</div>
+<div class="bg-surface-container-lowest p-3 aspect-square flex items-center justify-center rounded-lg shadow-sm border border-outline-variant/10">
+<img alt="Stroke 2" class="w-full h-full opacity-30 grayscale" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCeRNqJjYe4oGCDgQo_np2iBlJelz0WowD9vLERW5snMnrv51lxRzyBZT1w0uqPqaXqwa8bb0exe40R67EcI994NTD7inSzoKuxl-Npm6FSDRjtG3pjufn6JSW-NFRMmjImQDGBaEdLW8Tk8znRVuidaqBMA0Sxk4XopCDbihNYFt4SpsGyvejzO6SHofVw6L78nMDpmCW3O5q36-Lz2lAD7m8FjP7KLnJO5WG_efVxWVvqGqHfNyqoVDKRvF2xjPzVv9pnk0noww"/>
+</div>
+<div class="bg-surface-container-lowest p-3 aspect-square flex items-center justify-center rounded-lg shadow-sm border border-outline-variant/10">
+<img alt="Stroke 3" class="w-full h-full opacity-40 grayscale" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAACHlgyAgRJyG8p19dnS0nORUfjG4ckEHdKTN20qLJ9CqFlsO4X6t4BdUOOSD8pieiHy-dkqXBgUyAJIlAJlt4j46SorNE5UwbRr5dVCYeXU16WkVdVpk2roAWUX3nEcOC-buhyWO2LGbjDz2HX6R44HZpCfkKZCB4T0jj90IgYuQGK_ld6lJir3AIAihji4kyplvFJXc6vKSgtRiKtfFdxsqrrJd60kPLTmL1AeH2u3CRgGaVdlNKKSAFsMXwPa-RZ2aG2wLtCA"/>
+</div>
+<div class="bg-surface-container-lowest p-3 aspect-square flex items-center justify-center rounded-lg shadow-sm border border-outline-variant/10">
+<img alt="Stroke 4" class="w-full h-full opacity-50 grayscale" src="https://lh3.googleusercontent.com/aida-public/AB6AXuASrb6Ua0dr0_EBusNB9br5weEZfkrRzg49G8yr1qXO-NX-hDXx-16jzEIOY00vCf5j7XsWn4kSU8JLwFXksMNGeR8Kov9xbCqapo7sVAN7s5B8HHojfdTtnv_xnP6phGd_K-Ozbrm-7-iTapGD-LqQnGSXVTQeWuqJiHlsZMiEYs8zey-6iqhykOHouNXM6PJfH085ynSvFO5ET0JU4m4p4mHQbXMe8xQdWRFG-hq8wCBJU88kYibVvrO4eWzlxMlxncS8TqNzXw"/>
+</div>
+<div class="bg-surface-container-lowest p-3 aspect-square flex items-center justify-center rounded-lg shadow-sm border border-outline-variant/10">
+<img alt="Stroke 5" class="w-full h-full opacity-60 grayscale" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAdrbgPNLEQJWD4ViVSy3eQrR03FlFUHg3ZujBy6EpKtYsthfWuHj7fLL-xDkMVrTdUzAh2DaD-waJUiMPqy20XAIzIlvogtIbRRBEO-NOIXt1ePH1OB_aDO257mp7DX_PJIvYw6wzcrSK8RmVHCr7e_GdjvdhU8rM3iThWxtfuC18qQu8tuoWphkYPkaXtMWttr4uLqQeuOxtFRX2-UZqxKG76qelkDFWDCVlacrR3ql0srTEWqzO5lGBcRfLoSL0_srmTh9M41g"/>
+</div>
+<div class="bg-surface-container-lowest p-3 aspect-square flex items-center justify-center rounded-lg shadow-sm border border-outline-variant/10">
+<img alt="Stroke 6" class="w-full h-full opacity-70 grayscale" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB0CKOIMtQ7uGWh3ko0GQqdgNB6nNqeJLKgqVwbDwBVSM3TrN-kN2K7BA3kprI3yh_cGk3fQH75PHyYX6_G_xApoG-OjV4Bqs0d3dLWDQLliyaEkrmzN2HGcOXsj_it0VkcXJiJSLj9wUg4FGwfkfaCkRcHwJi-APC-yNNF5T_yeRAmo0t8xTbvq7GG1y_47iJ_FNkKQIUNqAkv-Xc66g7mnqjPsp82TnZjxrbldOa_bj74plny9cZwcxdW6fNbeSInYNOdOMUWgA"/>
+</div>
+<div class="bg-surface-container-lowest p-3 aspect-square flex items-center justify-center rounded-lg shadow-sm border border-outline-variant/10">
+<img alt="Stroke 7" class="w-full h-full opacity-80 grayscale" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB0E52tN6OUFhl_v_6u3Rz1OmbuwW-iQ9pUGx1qvCIWuOp8mfYsM7vEAgZ_yvHo8P6X0p3Cf85iGUHe6P3BrXjmg9sr1iMTZKdiJbBQNq6CNoeeTdN6x3cJvxd3mfNf1YJJGTHNanyEKArPBLcWI08mm8PzRjrOe8AdQeMOqAJGl65JdlRDciR4Ee9-FwNthuZaWN53q1lQ2b3X4JPJlFTRuDyicUnBqlpacf9Wu_9DvrYkZoCq36NK_wyeC543r_VVc3xe0ZAxOw"/>
+</div>
+<div class="bg-surface-container-lowest p-3 aspect-square flex items-center justify-center rounded-lg shadow-sm border border-outline-variant/10">
+<img alt="Stroke 8" class="w-full h-full opacity-90 grayscale" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA9hTuvi9dH213ICKzXrQP8bqjdoo-Q7y5Vtjr5GEiQTq6P3ghxprMCokQaHZKcww7omR97jOlMKaw5JxRhf0eBdjAZg8i1KshOBFqO7-07kEfcXmYSBEluTI49G3eCCF1aEM34wH3gdKbSs1jsTBfhTznj419VsflSBG3NuXA0sa-9ofbZTrEd1PWMjF21rHgPOKTrg-jy3rr4zVcwIrBPCsRwwnZQWZx-bvg_zqqtuu1q3nvC-CwsQZfagZHfQamxsuME1hHs1Q"/>
+</div>
+<div class="bg-surface-container-lowest p-3 aspect-square flex items-center justify-center rounded-lg shadow-sm border border-outline-variant/10">
+<img alt="Stroke 9" class="w-full h-full grayscale" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAu4U0VZww-ULN9-EBv7inY2NJnUYFC6E878DKV3ZU9bYK0HacoaAbQdX-n8aCzLntnHLFtnk3JegwdoqZA6iLo75xGePQnKRDNl1Ril2bHQEqtZ6eB-cok2ZNHnam1wlRm-Wp-_CYnchHbe2vqCv--Q4Zs0U_CQjExeWPWena6_ZcD-VsiS69lTKX3rA6ImQuBZ8LwX7n2nZpDf3QUfqwPDHP0bZybHPvR6NgKAL2pEMfp6BIFx4chjPa9UF9JTTieeDbKT0KwZw"/>
+</div>
+<div class="bg-surface-container-lowest p-3 aspect-square flex items-center justify-center rounded-lg shadow-sm border border-outline-variant/10">
+<img alt="Stroke 10" class="w-full h-full grayscale" src="https://lh3.googleusercontent.com/aida-public/AB6AXuALBM6zJahw69a5fGttraEP1ER2GaFUK6-mJ5Y5hQMMEitkxSYr0rDKvhXvLWKVGC1MJuvhTh4qogQb42w4UOTosx04pn94FtI5rRpewQ4Ott0TG6Mh0KWD57tpTbqbo9srQELUe15ywM78IX-mYxlbEnLE4cTnFkWQtAHzFfJzghVwBIIkzdfmZFADXhhxwiYYImyrNnUFtNsOG4bD3G-tno8iPtnRGVCIQHC1o5EhJ_9spEk-Ih4UDmN6XlYYPgr5-lQ2ou3Wlg"/>
+</div>
+<div class="bg-surface-container-lowest p-3 aspect-square flex items-center justify-center rounded-lg shadow-sm border border-outline-variant/10">
+<img alt="Stroke 11" class="w-full h-full grayscale" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBt_4Qm1obZOTFIgmjw9jrVeyKRPNAPMciyi1n0hG1eqHohp8rALVnXbMHb9fZMlYoSfJd3-gUZQW3AzazMbrwrVg1PaUg2-31ytyILWq2AhPlDN5_EwzRydufyqMzY4ZZ6c8pKJmwXJOPCEnqtmlTWEIAlHjTDO1nrw8KJ4fdO_BSg5faANAnVt8Jez0b7JsIrkXgGfxV2pruJ71nTrUDckPCZNrn9wBF91G_C7yCfAMfMI-fRBrh19XClz2N0AbWIZPTX3boJJg"/>
+</div>
+<div class="bg-surface-container-lowest p-3 aspect-square flex items-center justify-center rounded-lg shadow-sm border border-outline-variant/10">
+<img alt="Stroke 12" class="w-full h-full grayscale" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBSow4mIYmk8yvHzSF9DNAheGcTwQ-MsrIlUUHm9RrTB6Rs-8ekIJrkwqKDm1kgvNXmmWPk9shZLUHQ4tIciEEfDo3rixMek7rMbbItTyqLdPGoCVjekkEhHX7hXNAe6aVjGfoTLUtBCr3ISO1TmKwBOarDkXrS_BYlKZuXdCDhdPyM1bweqE3RRF0R01UhnUdO0-gcbZbfYkIZC-8S_S_G4wVW38GKBw5FZHPctl92bxQeUrN4M7p_bYOGdUgJ-kD0fwr8zYpBwQ"/>
+</div>
+<div class="bg-surface-container-high p-3 aspect-square flex items-center justify-center rounded-lg shadow-md border-2 border-primary">
+<img alt="Stroke Final" class="w-full h-full" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBIPVqPrMDf7nb0jG95BH0geoznsvesmdo_EGpKhGGYE97aXSeZrtEhPJup9yIWRMXjCwVS7jKcpiNQxcKBLv7o410yAL9kuO4BAuTFQFFks2ScAFQ7oAToeZEV8xCZ6VWCavNogZqlHZRHd8HshvNsaabxGqd9AcDQ_K7Rd6xwGkG0NOySFL06sHVjL2dpr-tn1jBcIQbtg3VXwVeDLdnBmZZActDy03eT3bOp-mEfMbjyFO35DRKkvFztfjLhme8rxrR475P9ig"/>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Conjugation Table -->
+<section class="space-y-8">
+<div class="flex items-center space-x-4 border-b border-outline-variant/30 pb-4">
+<h2 class="font-headline text-3xl font-bold text-secondary">Conjugation Matrix</h2>
+<div class="text-xs font-label px-2 py-0.5 border border-primary text-primary rounded tracking-widest uppercase">Comprehensive</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-12">
+<!-- Adjective & Basic Forms -->
+<div class="space-y-6">
+<h3 class="font-headline text-xl text-primary flex items-center">
+<span class="material-symbols-outlined mr-2">auto_stories</span>
+                    Adjective &amp; Functional Forms
+                </h3>
+<div class="overflow-hidden rounded-xl border border-outline-variant/20 bg-surface-container-lowest">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low border-b border-outline-variant/20">
+<th class="p-4 font-label text-xs uppercase tracking-widest text-outline">Form Type</th>
+<th class="p-4 font-headline text-sm font-bold text-on-surface">Japanese</th>
+<th class="p-4 font-label text-xs italic text-on-surface-variant">Romaji</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/10">
+<tr>
+<td class="p-4 text-xs font-label text-secondary uppercase tracking-tight">Standard Adjective</td>
+<td class="p-4 font-headline text-lg">楽しい</td>
+<td class="p-4 font-label text-sm text-on-surface-variant">Tanoshii</td>
+</tr>
+<tr>
+<td class="p-4 text-xs font-label text-secondary uppercase tracking-tight">Te Form</td>
+<td class="p-4 font-headline text-lg">楽しくて</td>
+<td class="p-4 font-label text-sm text-on-surface-variant">Tanoshikute</td>
+</tr>
+<tr>
+<td class="p-4 text-xs font-label text-secondary uppercase tracking-tight">Negative</td>
+<td class="p-4 font-headline text-lg">楽しくない</td>
+<td class="p-4 font-label text-sm text-on-surface-variant">Tanoshikunai</td>
+</tr>
+<tr>
+<td class="p-4 text-xs font-label text-secondary uppercase tracking-tight">Adverbial</td>
+<td class="p-4 font-headline text-lg">楽しく</td>
+<td class="p-4 font-label text-sm text-on-surface-variant">Tanoshiku</td>
+</tr>
+<tr>
+<td class="p-4 text-xs font-label text-secondary uppercase tracking-tight">Nominalized</td>
+<td class="p-4 font-headline text-lg">楽しさ</td>
+<td class="p-4 font-label text-sm text-on-surface-variant">Tanoshisa</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Verb Forms (Plain/Provisional/Conditional) -->
+<div class="space-y-6">
+<h3 class="font-headline text-xl text-primary flex items-center">
+<span class="material-symbols-outlined mr-2">history_edu</span>
+                    Verb &amp; Tense Logic
+                </h3>
+<div class="overflow-hidden rounded-xl border border-outline-variant/20 bg-surface-container-lowest">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low border-b border-outline-variant/20">
+<th class="p-4 font-label text-xs uppercase tracking-widest text-outline">State</th>
+<th class="p-4 font-headline text-sm font-bold text-on-surface">Present</th>
+<th class="p-4 font-headline text-sm font-bold text-on-surface">Past</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/10">
+<tr>
+<td class="p-4 text-xs font-label text-secondary uppercase">Plain Positive</td>
+<td class="p-4 font-headline">楽しむ</td>
+<td class="p-4 font-headline">楽しんだ</td>
+</tr>
+<tr>
+<td class="p-4 text-xs font-label text-secondary uppercase">Plain Negative</td>
+<td class="p-4 font-headline text-primary">楽しまない</td>
+<td class="p-4 font-headline text-primary">楽しまなかった</td>
+</tr>
+<tr>
+<td class="p-4 text-xs font-label text-secondary uppercase">Provisional</td>
+<td class="p-4 font-headline italic">楽しめば</td>
+<td class="p-4 font-headline italic">—</td>
+</tr>
+<tr>
+<td class="p-4 text-xs font-label text-secondary uppercase">Conditional</td>
+<td class="p-4 font-headline">楽しむなら</td>
+<td class="p-4 font-headline">楽しんだら</td>
+</tr>
+<tr>
+<td class="p-4 text-xs font-label text-secondary uppercase">Conditional Neg.</td>
+<td class="p-4 font-headline text-primary">楽しまないなら</td>
+<td class="p-4 font-headline text-primary">楽しまなかったら</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</section>
+<!-- Etymology & Context Bento -->
+<section class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<div class="bg-surface-container p-8 rounded-2xl flex flex-col justify-between space-y-4">
+<span class="material-symbols-outlined text-primary text-4xl">music_note</span>
+<div>
+<h4 class="font-headline text-xl font-bold">Musical Origins</h4>
+<p class="text-sm text-on-surface-variant mt-2 leading-relaxed">The upper part represents a musical instrument (a drum or stringed instrument) placed on a wooden stand (the bottom part 木).</p>
+</div>
+</div>
+<div class="bg-secondary-container/30 p-8 rounded-2xl flex flex-col justify-between space-y-4">
+<span class="material-symbols-outlined text-secondary text-4xl">sentiment_very_satisfied</span>
+<div>
+<h4 class="font-headline text-xl font-bold">Psychological Ease</h4>
+<p class="text-sm text-on-secondary-container mt-2 leading-relaxed">Beyond sound, it evolved to mean the ease or relief one feels while enjoying life, hence 'comfort'.</p>
+</div>
+</div>
+<div class="bg-primary-container p-8 rounded-2xl flex flex-col justify-between space-y-4 text-on-primary-container">
+<span class="material-symbols-outlined text-4xl">lightbulb</span>
+<div>
+<h4 class="font-headline text-xl font-bold">Usage Tip</h4>
+<p class="text-sm mt-2 leading-relaxed">Use 楽 (Raku) as a noun to refer to an easy life or 楽しい (Tanoshii) to describe a fun activity.</p>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="bg-[#e7e1dd] dark:bg-stone-900 w-full mt-auto">
+<div class="flex flex-col md:flex-row justify-between items-center px-12 py-16 w-full gap-8 max-w-7xl mx-auto">
+<div class="font-['Noto_Serif_JP'] text-xl font-semibold text-[#485e8a] dark:text-stone-300">
+            JLang Support
+        </div>
+<div class="flex flex-wrap justify-center gap-6">
+<a class="font-['Plus_Jakarta_Sans'] text-sm uppercase tracking-widest text-[#485e8a] dark:text-stone-400 hover:text-[#a04100] dark:hover:text-[#ff7a30] transition-colors opacity-80 hover:opacity-100" href="#">Support on Patreon</a>
+<a class="font-['Plus_Jakarta_Sans'] text-sm uppercase tracking-widest text-[#485e8a] dark:text-stone-400 hover:text-[#a04100] dark:hover:text-[#ff7a30] transition-colors opacity-80 hover:opacity-100" href="#">Buy me a Ko-fi</a>
+<a class="font-['Plus_Jakarta_Sans'] text-sm uppercase tracking-widest text-[#485e8a] dark:text-stone-400 hover:text-[#a04100] dark:hover:text-[#ff7a30] transition-colors opacity-80 hover:opacity-100" href="#">Privacy Policy</a>
+<a class="font-['Plus_Jakarta_Sans'] text-sm uppercase tracking-widest text-[#485e8a] dark:text-stone-400 hover:text-[#a04100] dark:hover:text-[#ff7a30] transition-colors opacity-80 hover:opacity-100" href="#">Terms of Service</a>
+</div>
+<div class="text-[#485e8a] dark:text-stone-400 font-['Plus_Jakarta_Sans'] text-xs uppercase tracking-widest text-center md:text-right">
+            © 2024 JLang Support. <br/>Crafted with intentionality.
+        </div>
+</div>
+</footer>
+</body></html>
