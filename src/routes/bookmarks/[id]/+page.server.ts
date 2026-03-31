@@ -30,7 +30,7 @@ export const load: PageServerLoad = async ({ locals, url, params, cookies, fetch
 			cards: board.cards.map((card) => ({
 				...card,
 				...parseCardType(card.front_text),
-				summary: getCardSummary(card.front_text)
+				summary: getCardSummary(card.front_text, card.back_text)
 			})),
 			serviceError: null,
 			flashcardAppUrl: getFlashcardAppUrl()

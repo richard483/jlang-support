@@ -7,6 +7,8 @@ const DEFAULT_FLASHCARD_API_URL = DEFAULT_FLASHCARD_APP_URL;
 const LEGACY_INTERNAL_FLASHCARD_API_URL = 'http://10.10.10.39:30039';
 const DEFAULT_FLASHCARD_TIMEOUT_MS = 3000;
 const JLANG_SOURCE = 'jlang-support';
+export const BOARD_CARD_LAYOUTS = ['character-front', 'meaning-front', 'reading-front'] as const;
+export type CardLayout = (typeof BOARD_CARD_LAYOUTS)[number];
 
 export type BoardSummary = {
 	id: string;
@@ -14,6 +16,7 @@ export type BoardSummary = {
 	card_count: number;
 	source: string | null;
 	source_updated_at: string | null;
+	card_layout: CardLayout;
 };
 
 export type BoardCard = {
@@ -30,8 +33,25 @@ export type BoardDetail = {
 		name: string;
 		source: string | null;
 		source_updated_at: string | null;
+		card_layout: CardLayout;
 	};
 	cards: BoardCard[];
+};
+
+export type BoardCardIdentifier = {
+	card_id: string;
+	type: 'kanji' | 'vocab' | 'unknown';
+	identifier: string;
+};
+
+export type BoardWithMembership = {
+	id: string;
+	name: string;
+	card_count: number;
+	source: string | null;
+	source_updated_at: string | null;
+	card_layout: CardLayout;
+	card_identifiers: BoardCardIdentifier[];
 };
 
 export type FlashcardDraft = {
@@ -171,6 +191,15 @@ export async function listBoards(accessToken: string, fetcher: typeof fetch = fe
 	return payload.decks ?? [];
 }
 
+export async function listBoardsWithCards(accessToken: string, fetcher: typeof fetch = fetch) {
+	const payload = await flashcardRequest<{ decks: BoardWithMembership[] }>(
+		`/api/decks/external/summary?source=${encodeURIComponent(JLANG_SOURCE)}`,
+		accessToken,
+		{ fetcher }
+	);
+	return payload.decks ?? [];
+}
+
 export async function createBoard(accessToken: string, name: string, fetcher: typeof fetch = fetch) {
 	return flashcardRequest<{
 		deck_id: string;
@@ -203,10 +232,22 @@ export async function renameBoard(
 	name: string,
 	fetcher: typeof fetch = fetch
 ) {
+	return updateBoard(accessToken, boardId, { name }, fetcher);
+}
+
+export async function updateBoard(
+	accessToken: string,
+	boardId: string,
+	updates: {
+		name?: string;
+		card_layout?: CardLayout;
+	},
+	fetcher: typeof fetch = fetch
+) {
 	return flashcardRequest<{ message: string }>(
 		`/api/decks/external/${encodeURIComponent(boardId)}`,
 		accessToken,
-		{ method: 'PUT', body: { name }, fetcher }
+		{ method: 'PUT', body: updates, fetcher }
 	);
 }
 

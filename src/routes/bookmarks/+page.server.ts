@@ -1,11 +1,9 @@
 import { redirect } from '@sveltejs/kit';
 import {
-	getBoard,
 	getFlashcardAppUrl,
 	getFlashcardErrorMessage,
-	listBoards
+	listBoardsWithCards
 } from '$lib/server/flashcard';
-import { getCardPreview } from '$lib/server/cardFormatter';
 import type { PageServerLoad } from './$types';
 
 type BoardPreviewItem = {
@@ -28,22 +26,20 @@ export const load: PageServerLoad = async ({ locals, url, cookies, fetch }) => {
 	}
 
 	try {
-		const boardSummaries = await listBoards(accessToken, fetch);
-		const boards = await Promise.all(
-			boardSummaries.map(async (board) => {
-				try {
-					const detail = await getBoard(accessToken, board.id, fetch);
-					const preview = detail.cards
-						.map((card) => getCardPreview(card.front_text))
-						.filter((item): item is BoardPreviewItem => Boolean(item))
-						.slice(0, 4);
-
-					return { ...board, preview };
-				} catch {
-					return { ...board, preview: [] as BoardPreviewItem[] };
-				}
-			})
-		);
+		const boards = (await listBoardsWithCards(accessToken, fetch)).map((board) => ({
+			id: board.id,
+			name: board.name,
+			card_count: board.card_count,
+			source_updated_at: board.source_updated_at,
+			preview: board.card_identifiers
+				.slice(0, 4)
+				.map(
+					(card): BoardPreviewItem => ({
+						type: card.type,
+						identifier: card.identifier
+					})
+				)
+		}));
 
 		return {
 			boards,

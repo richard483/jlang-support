@@ -1,5 +1,3 @@
-import { katakanaToHiragana } from '$lib/utils/kana';
-
 export type FlashcardInput = {
 	front: string;
 	back: string;
@@ -25,25 +23,21 @@ export type ParsedBoardCard = {
 	identifier: string;
 };
 
-function firstNonEmpty(values: string[]) {
-	return values.find((value) => value.trim().length > 0) ?? '';
-}
-
 export function formatKanjiCard(kanji: KanjiCardSource): FlashcardInput {
 	const meanings = kanji.meanings.filter(Boolean);
 	const onReadings = kanji.on_readings.filter(Boolean);
 	const kunReadings = kanji.kun_readings.filter(Boolean);
-	const primaryReading = kunReadings[0] || (onReadings[0] ? katakanaToHiragana(onReadings[0]) : '');
+	const reading = [
+		onReadings.length ? `ON: ${onReadings.join(', ')}` : '',
+		kunReadings.length ? `KUN: ${kunReadings.join(', ')}` : ''
+	]
+		.filter(Boolean)
+		.join('\n');
 
 	return {
-		front: `KANJI:${kanji.literal}\n${meanings.join(', ')}`,
-		back: [
-			onReadings.length ? `ON: ${onReadings.join(', ')}` : '',
-			kunReadings.length ? `KUN: ${kunReadings.join(', ')}` : ''
-		]
-			.filter(Boolean)
-			.join('\n'),
-		...(primaryReading ? { reading: primaryReading } : {})
+		front: `KANJI:${kanji.literal}`,
+		back: meanings.join(', '),
+		...(reading ? { reading } : {})
 	};
 }
 
@@ -51,17 +45,17 @@ export function formatVocabCard(vocab: VocabCardSource): FlashcardInput {
 	const readings = vocab.readings.filter(Boolean);
 	const meanings = vocab.meanings.filter(Boolean);
 	const altForms = (vocab.alt_forms ?? []).filter(Boolean);
-	const primaryReading = firstNonEmpty(readings);
+	const reading = [
+		readings.join(', '),
+		altForms.length ? `ALT: ${altForms.join(', ')}` : ''
+	]
+		.filter(Boolean)
+		.join('\n');
 
 	return {
-		front: `VOCAB:${vocab.word}\n${meanings.join(', ')}`,
-		back: [
-			readings.length ? readings.join(', ') : '',
-			altForms.length ? `ALT: ${altForms.join(', ')}` : ''
-		]
-			.filter(Boolean)
-			.join('\n'),
-		...(primaryReading ? { reading: primaryReading } : {})
+		front: `VOCAB:${vocab.word}`,
+		back: meanings.join(', '),
+		...(reading ? { reading } : {})
 	};
 }
 
@@ -87,13 +81,23 @@ export function parseCardType(frontText: string): ParsedBoardCard {
 	};
 }
 
-export function getCardSummary(frontText: string) {
-	return frontText
-		.split('\n')
-		.slice(1)
+export function getCardSummary(frontText: string, backText?: string) {
+	const [firstLine = '', ...rest] = frontText.split('\n');
+	const legacySummary = rest
 		.map((line) => line.trim())
 		.filter(Boolean)
 		.join(' ');
+	const isStructured = firstLine.startsWith('KANJI:') || firstLine.startsWith('VOCAB:');
+
+	if (isStructured && legacySummary) {
+		return legacySummary;
+	}
+
+	if (backText?.trim()) {
+		return backText.trim();
+	}
+
+	return legacySummary;
 }
 
 export function getCardPreview(frontText: string) {

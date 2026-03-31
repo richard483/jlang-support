@@ -1,10 +1,8 @@
 import { error } from '@sveltejs/kit';
 import db from '$lib/server/db';
 import {
-	findKanjiCard,
-	getBoard,
 	getFlashcardErrorMessage,
-	listBoards
+	listBoardsWithCards
 } from '$lib/server/flashcard';
 import { conjugate, type ConjugationResult } from '$lib/utils/conjugation';
 import type { PageServerLoad } from './$types';
@@ -83,8 +81,21 @@ export const load: PageServerLoad = async ({ params, locals, cookies, fetch }) =
 	if (!literal || [...literal].length !== 1) error(400, 'Invalid kanji');
 
 	const userId = locals.user?.id ?? null;
+	const accessToken = cookies.get('access_token');
+	const boardPromise =
+		userId && accessToken
+			? listBoardsWithCards(accessToken, fetch)
+					.then((boards) => ({ boards, boardsError: null }))
+					.catch((caught) => ({
+						boards: [] as Awaited<ReturnType<typeof listBoardsWithCards>>,
+						boardsError: getFlashcardErrorMessage(caught)
+					}))
+			: Promise.resolve({
+					boards: null as Awaited<ReturnType<typeof listBoardsWithCards>> | null,
+					boardsError: null as string | null
+				});
 
-	const [kanjiResult, radicalsResult, vocabResult, mnemonicsResult] = await Promise.all([
+	const [kanjiResult, radicalsResult, vocabResult, mnemonicsResult, boardData] = await Promise.all([
 		db.query('SELECT * FROM kanji WHERE literal = $1', [literal]),
 		db.query('SELECT radical FROM kanji_radicals WHERE kanji_literal = $1', [literal]),
 		db.query(
@@ -112,6 +123,8 @@ export const load: PageServerLoad = async ({ params, locals, cookies, fetch }) =
 						created_at: string;
 					}[]
 				})
+		,
+		boardPromise
 	]);
 
 	if (kanjiResult.rows.length === 0) error(404, `Kanji "${literal}" not found`);
@@ -131,8 +144,6 @@ export const load: PageServerLoad = async ({ params, locals, cookies, fetch }) =
 	};
 
 	const wordForms = deriveForms(kanji.literal, kanji.kun_readings);
-	const accessToken = cookies.get('access_token');
-
 	let boards:
 		| {
 				id: string;
@@ -142,38 +153,22 @@ export const load: PageServerLoad = async ({ params, locals, cookies, fetch }) =
 				cardId: string | null;
 		  }[]
 		| null = null;
-	let boardsError: string | null = null;
+	let boardsError: string | null = boardData.boardsError;
 
-	if (userId && accessToken) {
-		try {
-			const boardSummaries = await listBoards(accessToken, fetch);
-			boards = await Promise.all(
-				boardSummaries.map(async (board) => {
-					try {
-						const detail = await getBoard(accessToken, board.id, fetch);
-						const matchingCard = findKanjiCard(detail.cards, literal);
-						return {
-							id: board.id,
-							name: board.name,
-							card_count: board.card_count,
-							isSaved: Boolean(matchingCard),
-							cardId: matchingCard?.id ?? null
-						};
-					} catch {
-						return {
-							id: board.id,
-							name: board.name,
-							card_count: board.card_count,
-							isSaved: false,
-							cardId: null
-						};
-					}
-				})
+	if (boardData.boards) {
+		boards = boardData.boards.map((board) => {
+			const match = board.card_identifiers.find(
+				(card) => card.type === 'kanji' && card.identifier === literal
 			);
-		} catch (caught) {
-			boards = [];
-			boardsError = getFlashcardErrorMessage(caught);
-		}
+
+			return {
+				id: board.id,
+				name: board.name,
+				card_count: board.card_count,
+				isSaved: Boolean(match),
+				cardId: match?.card_id ?? null
+			};
+		});
 	}
 
 	return {
