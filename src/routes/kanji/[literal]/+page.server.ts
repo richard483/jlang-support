@@ -82,18 +82,15 @@ function deriveForms(literal: string, kunReadings: string[]): WordForm[] {
 	return forms;
 }
 
-export const load: PageServerLoad = async ({ params }) => {
+export const load: PageServerLoad = async ({ params, locals }) => {
 	const { literal } = params;
 	if (!literal || [...literal].length !== 1) error(400, 'Invalid kanji');
 
-	const [kanjiResult, radicalsResult, mnemonicsResult, bookmarkResult, vocabResult] = await Promise.all([
+	const userId = locals.user?.id ?? null;
+
+	const [kanjiResult, radicalsResult, vocabResult, mnemonicsResult, bookmarkResult] = await Promise.all([
 		db.query('SELECT * FROM kanji WHERE literal = $1', [literal]),
 		db.query('SELECT radical FROM kanji_radicals WHERE kanji_literal = $1', [literal]),
-		db.query(
-			'SELECT id, mnemonic, etymology, created_at FROM kanji_mnemonics WHERE kanji_literal = $1 ORDER BY created_at DESC',
-			[literal]
-		),
-		db.query('SELECT id FROM bookmarks WHERE kanji_literal = $1', [literal]),
 		db.query(
 			`SELECT v.word, v.readings, v.meanings, v.is_common
 			 FROM vocab v
@@ -102,7 +99,19 @@ export const load: PageServerLoad = async ({ params }) => {
 			 ORDER BY v.is_common DESC, LENGTH(v.word) ASC
 			 LIMIT 30`,
 			[literal]
-		)
+		),
+		userId
+			? db.query(
+					`SELECT id, mnemonic, etymology, created_at
+					 FROM kanji_mnemonics
+					 WHERE kanji_literal = $1 AND user_id = $2
+					 ORDER BY created_at DESC`,
+					[literal, userId]
+				)
+			: Promise.resolve({ rows: [] as { id: number; mnemonic: string; etymology: string | null; created_at: string }[] }),
+		userId
+			? db.query('SELECT id FROM bookmarks WHERE kanji_literal = $1 AND user_id = $2', [literal, userId])
+			: Promise.resolve({ rows: [] as { id: string }[] })
 	]);
 
 	if (kanjiResult.rows.length === 0) error(404, `Kanji "${literal}" not found`);

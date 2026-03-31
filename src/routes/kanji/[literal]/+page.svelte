@@ -1,13 +1,15 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import StrokeOrder from '$lib/components/StrokeOrder.svelte';
 	import { formatReading, katakanaToHiragana } from '$lib/utils/kana';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
-	let { kanji, radicals, mnemonics: initialMnemonics, bookmarked: initialBookmarked, wordForms, vocab } = $derived(data);
+	let { kanji, radicals, mnemonics: initialMnemonics, bookmarked: initialBookmarked, wordForms, vocab, user } = $derived(data);
 
 	let bookmarked = $state(false);
 	let mnemonics = $state<typeof initialMnemonics>([]);
+	const isAuthenticated = $derived(Boolean(user));
 
 	$effect(() => {
 		bookmarked = initialBookmarked;
@@ -20,6 +22,7 @@
 	let submitting = $state(false);
 
 	const tanoshiiUrl = $derived(`https://www.tanoshiijapanese.com/dictionary/?j=${encodeURIComponent(kanji.literal)}`);
+	const loginRedirect = $derived(`/login?redirectTo=${encodeURIComponent(`/kanji/${kanji.literal}`)}`);
 
 	// Derive the hero heading from word forms or fall back to readings
 	const heroTitle = $derived(() => {
@@ -32,6 +35,11 @@
 	const verbForm = $derived(wordForms.find((wf) => wf.type === 'verb-ichidan' || wf.type === 'verb-godan') ?? null);
 
 	async function toggleBookmark() {
+		if (!user) {
+			await goto(loginRedirect);
+			return;
+		}
+
 		if (bookmarked) {
 			await fetch(`/api/bookmarks/${encodeURIComponent(kanji.literal)}`, { method: 'DELETE' });
 			bookmarked = false;
@@ -94,14 +102,24 @@
 				{#if kanji.frequency}
 					<span class="text-xs font-label text-outline px-3 py-1 bg-surface-container-high rounded-full">Freq #{kanji.frequency}</span>
 				{/if}
-				<button
-					onclick={toggleBookmark}
-					class="ml-auto flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-label font-medium transition-colors
-						{bookmarked ? 'bg-primary/10 text-primary' : 'bg-surface-container-high text-outline hover:text-on-surface'}"
-				>
-					<span class="material-symbols-outlined text-base leading-none">{bookmarked ? 'bookmark' : 'bookmark_border'}</span>
-					{bookmarked ? 'Saved' : 'Save'}
-				</button>
+				{#if isAuthenticated}
+					<button
+						onclick={toggleBookmark}
+						class="ml-auto flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-label font-medium transition-colors
+							{bookmarked ? 'bg-primary/10 text-primary' : 'bg-surface-container-high text-outline hover:text-on-surface'}"
+					>
+						<span class="material-symbols-outlined text-base leading-none">{bookmarked ? 'bookmark' : 'bookmark_border'}</span>
+						{bookmarked ? 'Saved' : 'Save'}
+					</button>
+				{:else}
+					<a
+						href={loginRedirect}
+						class="ml-auto inline-flex items-center gap-1.5 rounded-full bg-surface-container-high px-3 py-1 text-xs font-label font-medium text-outline transition-colors hover:text-on-surface"
+					>
+						<span class="material-symbols-outlined text-base leading-none">login</span>
+						Login to save
+					</a>
+				{/if}
 			</div>
 
 			<h1 class="font-headline text-4xl md:text-5xl font-bold text-primary tracking-tighter leading-tight">
@@ -363,51 +381,68 @@
 	<section class="space-y-5">
 		<div class="flex items-center justify-between border-b border-outline-variant/30 pb-4">
 			<h2 class="font-headline text-3xl font-bold text-secondary">Mnemonics &amp; Etymology</h2>
-			<button
-				onclick={() => (showMnemonicForm = !showMnemonicForm)}
-				class="text-sm font-label text-primary hover:underline"
-			>{showMnemonicForm ? 'Cancel' : '+ Add'}</button>
+			{#if isAuthenticated}
+				<button
+					onclick={() => (showMnemonicForm = !showMnemonicForm)}
+					class="text-sm font-label text-primary hover:underline"
+				>{showMnemonicForm ? 'Cancel' : '+ Add'}</button>
+			{/if}
 		</div>
 
-		{#if showMnemonicForm}
-			<div class="space-y-3 p-6 bg-surface-container-low">
-				<textarea
-					bind:value={newMnemonic}
-					placeholder="How do you remember this kanji?"
-					class="w-full bg-surface-container-high border-none border-b-2 border-outline-variant focus:border-primary focus:ring-0 px-3 py-2 text-sm font-body resize-none h-20 outline-none rounded-none"
-				></textarea>
-				<input
-					bind:value={newEtymology}
-					type="text"
-					placeholder="Etymology hint (optional)"
-					class="w-full bg-surface-container-high border-none border-b-2 border-outline-variant focus:border-primary focus:ring-0 px-3 py-2 text-sm font-body outline-none rounded-none"
-				/>
-				<button
-					onclick={addMnemonic}
-					disabled={submitting || !newMnemonic.trim()}
-					class="px-6 py-2 bg-primary text-on-primary rounded-full text-sm font-label font-semibold hover:opacity-90 disabled:opacity-50 transition-opacity"
-				>{submitting ? 'Saving…' : 'Save'}</button>
+		{#if !isAuthenticated}
+			<div class="rounded-[1.5rem] bg-surface-container-low p-6">
+				<p class="font-headline text-2xl text-on-surface">Save personal notes after login.</p>
+				<p class="mt-2 max-w-2xl text-sm leading-7 text-on-surface-variant">
+					Bookmarks and mnemonics are private to your account now. Sign in to keep study notes tied to your own kanji list.
+				</p>
+				<a
+					href={loginRedirect}
+					class="mt-4 inline-flex items-center rounded-full bg-primary px-5 py-3 text-sm font-label font-semibold text-on-primary transition-opacity hover:opacity-90"
+				>
+					Login to save this kanji
+				</a>
+			</div>
+		{:else}
+			{#if showMnemonicForm}
+				<div class="space-y-3 p-6 bg-surface-container-low">
+					<textarea
+						bind:value={newMnemonic}
+						placeholder="How do you remember this kanji?"
+						class="w-full bg-surface-container-high border-none border-b-2 border-outline-variant focus:border-primary focus:ring-0 px-3 py-2 text-sm font-body resize-none h-20 outline-none rounded-none"
+					></textarea>
+					<input
+						bind:value={newEtymology}
+						type="text"
+						placeholder="Etymology hint (optional)"
+						class="w-full bg-surface-container-high border-none border-b-2 border-outline-variant focus:border-primary focus:ring-0 px-3 py-2 text-sm font-body outline-none rounded-none"
+					/>
+					<button
+						onclick={addMnemonic}
+						disabled={submitting || !newMnemonic.trim()}
+						class="px-6 py-2 bg-primary text-on-primary rounded-full text-sm font-label font-semibold hover:opacity-90 disabled:opacity-50 transition-opacity"
+					>{submitting ? 'Saving…' : 'Save'}</button>
+				</div>
+			{/if}
+
+			{#if mnemonics.length === 0 && !showMnemonicForm}
+				<p class="text-sm text-outline font-body py-4">No mnemonics yet. Add one to help remember this kanji!</p>
+			{/if}
+
+			<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+				{#each mnemonics as m}
+					<div class="p-6 bg-surface-container relative group border-l-2 border-primary/30">
+						<p class="text-on-surface font-body text-sm leading-relaxed">{m.mnemonic}</p>
+						{#if m.etymology}
+							<p class="text-xs text-outline font-body italic mt-2">{m.etymology}</p>
+						{/if}
+						<button
+							onclick={() => deleteMnemonic(m.id)}
+							class="absolute top-4 right-4 text-xs font-label text-error opacity-0 group-hover:opacity-100 transition-opacity hover:underline"
+						>delete</button>
+					</div>
+				{/each}
 			</div>
 		{/if}
-
-		{#if mnemonics.length === 0 && !showMnemonicForm}
-			<p class="text-sm text-outline font-body py-4">No mnemonics yet. Add one to help remember this kanji!</p>
-		{/if}
-
-		<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-			{#each mnemonics as m}
-				<div class="p-6 bg-surface-container relative group border-l-2 border-primary/30">
-					<p class="text-on-surface font-body text-sm leading-relaxed">{m.mnemonic}</p>
-					{#if m.etymology}
-						<p class="text-xs text-outline font-body italic mt-2">{m.etymology}</p>
-					{/if}
-					<button
-						onclick={() => deleteMnemonic(m.id)}
-						class="absolute top-4 right-4 text-xs font-label text-error opacity-0 group-hover:opacity-100 transition-opacity hover:underline"
-					>delete</button>
-				</div>
-			{/each}
-		</div>
 	</section>
 
 </div>
