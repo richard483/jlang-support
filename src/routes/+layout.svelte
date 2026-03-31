@@ -54,7 +54,7 @@
 								? 'text-primary border-b-2 border-primary'
 								: 'text-secondary hover:text-primary'}"
 					>
-						Bookmarks
+						Boards
 					</a>
 				{/if}
 			</div>
@@ -107,7 +107,7 @@
 				{/each}
 				{#if data.user}
 					<a href="/bookmarks" class="font-label text-sm uppercase tracking-widest text-secondary hover:text-primary transition-colors opacity-80 hover:opacity-100">
-						Bookmarks
+						Boards
 					</a>
 				{/if}
 				<a

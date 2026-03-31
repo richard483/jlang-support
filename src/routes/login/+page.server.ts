@@ -7,7 +7,7 @@ function isSafeRedirectPath(value: string | null) {
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	if (locals.user) {
-		redirect(303, '/');
+		throw redirect(303, '/');
 	}
 
 	const redirectTo = url.searchParams.get('redirectTo');

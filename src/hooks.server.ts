@@ -5,9 +5,9 @@ import { clearAuthCookies, getSessionUser, setRefreshCookies } from '$lib/server
 const skipPrefixes = ['/_app', '/api/auth', '/kanjivg'];
 const skipPaths = new Set(['/favicon.ico', '/robots.txt']);
 const publicPages = [/^\/$/, /^\/login$/, /^\/reset-password$/, /^\/browse$/, /^\/kanji\/[^/]+$/, /^\/vocab\/[^/]+$/, /^\/conjugate$/];
-const protectedPages = [/^\/bookmarks\/?$/];
+const protectedPages = [/^\/bookmarks(?:\/[^/]+)?\/?$/];
 const publicApiPrefixes = ['/api/kanji'];
-const protectedApiPrefixes = ['/api/bookmarks', '/api/mnemonics', '/api/flashcard-export'];
+const protectedApiPrefixes = ['/api/boards', '/api/mnemonics'];
 
 function matchesPrefix(pathname: string, prefix: string) {
 	return pathname === prefix || pathname.startsWith(`${prefix}/`);

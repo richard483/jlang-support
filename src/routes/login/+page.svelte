@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
+	import { goto, invalidateAll } from '$app/navigation';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -45,6 +45,7 @@
 			}
 
 			if (mode === 'login') {
+				await invalidateAll();
 				await goto(data.redirectTo || '/');
 				return;
 			}
@@ -72,19 +73,19 @@
 			One login for kanji study and flashcards.
 		</h1>
 		<p class="max-w-xl text-base leading-8 text-on-surface-variant">
-			Use your karasu-auth account in JLang Support, keep personal bookmarks private, and export them directly into Rein Flashcard when you are ready to drill.
+			Use one karasu-auth account across JLang Support and Rein Flashcard, then sort kanji into study boards that stay in sync automatically.
 		</p>
 		<div class="grid gap-4 md:grid-cols-2">
 			<div class="rounded-[1.5rem] bg-surface-container-lowest/80 p-6">
-				<p class="font-headline text-2xl text-primary">Bookmark privately</p>
+				<p class="font-headline text-2xl text-primary">Build focused boards</p>
 				<p class="mt-2 text-sm leading-7 text-on-surface-variant">
-					Your saved kanji and mnemonics stay tied to your own account across devices.
+					Group kanji by theme, exam level, or weak spots without keeping a second local bookmark database.
 				</p>
 			</div>
 			<div class="rounded-[1.5rem] bg-surface-container-lowest/80 p-6">
-				<p class="font-headline text-2xl text-secondary">Export in one click</p>
+				<p class="font-headline text-2xl text-secondary">Study instantly</p>
 				<p class="mt-2 text-sm leading-7 text-on-surface-variant">
-					Send bookmarked kanji to Rein Flashcard as a ready-made deck without leaving the app.
+					Every board becomes a Rein Flashcard deck immediately, so studying starts without a manual export step.
 				</p>
 			</div>
 		</div>

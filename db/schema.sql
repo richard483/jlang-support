@@ -37,16 +37,6 @@ CREATE TABLE IF NOT EXISTS kanji_mnemonics (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Bookmarked kanji scoped to the authenticated user
-CREATE TABLE IF NOT EXISTS bookmarks (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL,
-    kanji_literal CHAR(1) REFERENCES kanji(literal) ON DELETE CASCADE,
-    notes TEXT,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE(user_id, kanji_literal)
-);
-
 -- Vocabulary / compound words (from JMdict)
 CREATE TABLE IF NOT EXISTS vocab (
     id          INT PRIMARY KEY,      -- JMdict ent_seq
@@ -74,5 +64,3 @@ CREATE INDEX IF NOT EXISTS idx_kanji_grade ON kanji(grade);
 CREATE INDEX IF NOT EXISTS idx_kanji_frequency ON kanji(frequency);
 CREATE INDEX IF NOT EXISTS idx_kanji_mnemonics_user_id ON kanji_mnemonics(user_id);
 CREATE INDEX IF NOT EXISTS idx_kanji_mnemonics_user_literal ON kanji_mnemonics(user_id, kanji_literal);
-CREATE INDEX IF NOT EXISTS idx_bookmarks_created ON bookmarks(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_bookmarks_user_id ON bookmarks(user_id);
