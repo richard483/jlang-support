@@ -1,8 +1,8 @@
 import { env as privateEnv } from '$env/dynamic/private';
 import { env as publicEnv } from '$env/dynamic/public';
 
-const DEFAULT_FLASHCARD_API_URL = 'http://10.10.10.39:30039';
 const DEFAULT_FLASHCARD_APP_URL = 'https://fc.nephren.xyz';
+const DEFAULT_FLASHCARD_API_URL = DEFAULT_FLASHCARD_APP_URL;
 const DEFAULT_FLASHCARD_TIMEOUT_MS = 3000;
 const JLANG_SOURCE = 'jlang-support';
 
