@@ -116,7 +116,13 @@
 			</button>
 		</div>
 
-		<form class="mt-8 space-y-5" on:submit|preventDefault={submit}>
+		<form
+			class="mt-8 space-y-5"
+			onsubmit={(event) => {
+				event.preventDefault();
+				submit();
+			}}
+		>
 			<div class="space-y-2">
 				<label class="text-xs font-label font-bold uppercase tracking-[0.24em] text-outline" for="username">Username</label>
 				<input
