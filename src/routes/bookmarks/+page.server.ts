@@ -1,12 +1,17 @@
 import { redirect } from '@sveltejs/kit';
 import {
-	extractKanjiLiteralFromFront,
 	getBoard,
 	getFlashcardAppUrl,
 	getFlashcardErrorMessage,
 	listBoards
 } from '$lib/server/flashcard';
+import { getCardPreview } from '$lib/server/cardFormatter';
 import type { PageServerLoad } from './$types';
+
+type BoardPreviewItem = {
+	type: 'kanji' | 'vocab' | 'unknown';
+	identifier: string;
+};
 
 export const load: PageServerLoad = async ({ locals, url, cookies, fetch }) => {
 	if (!locals.user) {
@@ -29,13 +34,13 @@ export const load: PageServerLoad = async ({ locals, url, cookies, fetch }) => {
 				try {
 					const detail = await getBoard(accessToken, board.id, fetch);
 					const preview = detail.cards
-						.map((card) => extractKanjiLiteralFromFront(card.front_text))
-						.filter((literal): literal is string => Boolean(literal))
+						.map((card) => getCardPreview(card.front_text))
+						.filter((item): item is BoardPreviewItem => Boolean(item))
 						.slice(0, 4);
 
 					return { ...board, preview };
 				} catch {
-					return { ...board, preview: [] as string[] };
+					return { ...board, preview: [] as BoardPreviewItem[] };
 				}
 			})
 		);

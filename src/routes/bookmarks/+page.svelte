@@ -6,7 +6,10 @@
 		id: string;
 		name: string;
 		card_count: number;
-		preview: string[];
+		preview: {
+			type: 'kanji' | 'vocab' | 'unknown';
+			identifier: string;
+		}[];
 		source_updated_at: string | null;
 	};
 
@@ -161,7 +164,7 @@
 		<div class="rounded-[1.75rem] bg-surface-container-lowest p-10 text-center">
 			<span class="material-symbols-outlined block text-5xl text-outline-variant">dashboard_customize</span>
 			<p class="mt-4 font-headline text-2xl text-on-surface">No boards yet.</p>
-			<p class="mt-2 text-sm text-on-surface-variant">Create a board, then start saving kanji from any detail page.</p>
+			<p class="mt-2 text-sm text-on-surface-variant">Create a board, then start saving kanji and vocabulary from any detail page.</p>
 		</div>
 	{:else}
 		<div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -194,13 +197,19 @@
 
 					<div class="mt-6 flex min-h-[4.5rem] flex-wrap gap-3">
 						{#if board.preview.length > 0}
-							{#each board.preview as literal}
-								<span class="inline-flex h-14 w-14 items-center justify-center rounded-[1.25rem] bg-surface-container-high font-headline text-3xl text-primary">
-									{literal}
-								</span>
+							{#each board.preview as item}
+								{#if item.type === 'kanji' && [...item.identifier].length === 1}
+									<span class="inline-flex h-14 w-14 items-center justify-center rounded-[1.25rem] bg-surface-container-high font-headline text-3xl text-primary">
+										{item.identifier}
+									</span>
+								{:else}
+									<span class="inline-flex items-center justify-center rounded-full bg-surface-container-high px-4 py-2 font-body text-sm font-semibold text-on-surface">
+										{item.identifier}
+									</span>
+								{/if}
 							{/each}
 						{:else}
-							<p class="text-sm leading-7 text-on-surface-variant">No kanji saved yet. Open a kanji page and add it to this board.</p>
+							<p class="text-sm leading-7 text-on-surface-variant">No items saved yet. Open a kanji or vocabulary page and add it to this board.</p>
 						{/if}
 					</div>
 

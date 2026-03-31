@@ -1,4 +1,5 @@
 <script lang="ts">
+	import SaveToBoard from '$lib/components/SaveToBoard.svelte';
 	import StrokeOrder from '$lib/components/StrokeOrder.svelte';
 	import { formatReading, katakanaToHiragana } from '$lib/utils/kana';
 	import type { PageData } from './$types';
@@ -8,25 +9,18 @@
 		id: string;
 		name: string;
 		card_count: number;
-		containsLiteral: boolean;
+		isSaved: boolean;
 		cardId: string | null;
 	};
 
 	let { kanji, radicals, mnemonics: initialMnemonics, boards: initialBoards, boardsError: initialBoardsError, wordForms, vocab, user } = $derived(data);
 	let mnemonics = $state<typeof initialMnemonics>([]);
 	let boards = $state<BoardMembership[]>([]);
-	let boardPanelOpen = $state(false);
 	let boardError = $state('');
 	let boardBusyId = $state('');
 	let creatingBoard = $state(false);
-	let newBoardName = $state('');
 	let boardServiceError = $state('');
 	const isAuthenticated = $derived(Boolean(user));
-	const canManageBoards = $derived(isAuthenticated && !boardServiceError);
-	const savedBoardCount = $derived(boards.filter((board) => board.containsLiteral).length);
-	const saveButtonLabel = $derived(
-		savedBoardCount === 0 ? 'Save to Board' : `Saved in ${savedBoardCount} board${savedBoardCount === 1 ? '' : 's'}`
-	);
 
 	$effect(() => {
 		mnemonics = [...initialMnemonics];
@@ -53,19 +47,15 @@
 	const adjForm = $derived(wordForms.find((wf) => wf.type === 'adjective-i') ?? null);
 	const verbForm = $derived(wordForms.find((wf) => wf.type === 'verb-ichidan' || wf.type === 'verb-godan') ?? null);
 
-	async function toggleBoard(board: BoardMembership) {
+	async function addToBoard(boardId: string) {
 		boardError = '';
-		boardBusyId = board.id;
+		boardBusyId = boardId;
 
 		try {
-			const response = await fetch(`/api/boards/${encodeURIComponent(board.id)}/kanji`, {
-				method: board.containsLiteral ? 'DELETE' : 'POST',
+			const response = await fetch(`/api/boards/${encodeURIComponent(boardId)}/kanji`, {
+				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(
-					board.containsLiteral
-						? { card_id: board.cardId, literal: kanji.literal }
-						: { literal: kanji.literal }
-				)
+				body: JSON.stringify({ literal: kanji.literal })
 			});
 			const payload = (await response.json().catch(() => ({}))) as {
 				message?: string;
@@ -78,15 +68,13 @@
 			}
 
 			boards = boards.map((current) =>
-				current.id !== board.id
+				current.id !== boardId
 					? current
 					: {
 							...current,
-							containsLiteral: !board.containsLiteral,
-							cardId: board.containsLiteral ? null : (payload.card_id ?? current.cardId),
-							card_count: board.containsLiteral
-								? Math.max(0, current.card_count - 1)
-								: current.card_count + (payload.already_exists ? 0 : 1)
+							isSaved: true,
+							cardId: payload.card_id ?? current.cardId,
+							card_count: current.card_count + (payload.already_exists ? 0 : 1)
 						}
 			);
 		} catch (error) {
@@ -96,12 +84,44 @@
 		}
 	}
 
-	async function createBoardAndSave() {
-		if (!newBoardName.trim()) {
-			boardError = 'Board name is required.';
+	async function removeFromBoard(boardId: string, cardId?: string) {
+		if (!cardId) {
+			boardError = 'Card not found.';
 			return;
 		}
 
+		boardError = '';
+		boardBusyId = boardId;
+
+		try {
+			const response = await fetch(`/api/boards/${encodeURIComponent(boardId)}/kanji`, {
+				method: 'DELETE',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ card_id: cardId, literal: kanji.literal })
+			});
+			const payload = (await response.json().catch(() => ({}))) as { message?: string };
+			if (!response.ok) {
+				throw new Error(payload.message || 'Failed to remove kanji from board.');
+			}
+
+			boards = boards.map((current) =>
+				current.id !== boardId
+					? current
+					: {
+							...current,
+							isSaved: false,
+							cardId: null,
+							card_count: Math.max(0, current.card_count - 1)
+						}
+			);
+		} catch (error) {
+			boardError = error instanceof Error ? error.message : 'Failed to remove kanji from board.';
+		} finally {
+			boardBusyId = '';
+		}
+	}
+
+	async function createBoardAndSave(name: string) {
 		creatingBoard = true;
 		boardError = '';
 
@@ -109,7 +129,7 @@
 			const createResponse = await fetch('/api/boards', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ name: newBoardName.trim() })
+				body: JSON.stringify({ name })
 			});
 			const createPayload = (await createResponse.json().catch(() => ({}))) as {
 				message?: string;
@@ -135,16 +155,16 @@
 			boards = [
 				{
 					id: createPayload.deck_id,
-					name: newBoardName.trim(),
+					name,
 					card_count: 1,
-					containsLiteral: true,
+					isSaved: true,
 					cardId: addPayload.card_id ?? null
 				},
 				...boards
 			];
-			newBoardName = '';
 		} catch (error) {
 			boardError = error instanceof Error ? error.message : 'Failed to create board.';
+			throw error;
 		} finally {
 			creatingBoard = false;
 		}
@@ -199,128 +219,25 @@
 				{#if kanji.frequency}
 					<span class="text-xs font-label text-outline px-3 py-1 bg-surface-container-high rounded-full">Freq #{kanji.frequency}</span>
 				{/if}
-				{#if isAuthenticated && canManageBoards}
-					<button
-						onclick={() => {
-							boardPanelOpen = !boardPanelOpen;
-							boardError = '';
-						}}
-						class="ml-auto flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-label font-medium transition-colors
-							{savedBoardCount > 0 ? 'bg-primary/10 text-primary' : 'bg-surface-container-high text-outline hover:text-on-surface'}"
-					>
-						<span class="material-symbols-outlined text-base leading-none">
-							{savedBoardCount > 0 ? 'bookmark_added' : 'bookmark_add'}
-						</span>
-						{saveButtonLabel}
-					</button>
-				{:else if isAuthenticated}
-					<button
-						type="button"
-						disabled
-						title={boardServiceError}
-						class="ml-auto flex items-center gap-1.5 rounded-full bg-surface-container-high px-4 py-2 text-xs font-label font-medium text-outline opacity-70"
-					>
-						<span class="material-symbols-outlined text-base leading-none">cloud_off</span>
-						Boards unavailable
-					</button>
-				{:else}
-					<a
-						href={loginRedirect}
-						class="ml-auto inline-flex items-center gap-1.5 rounded-full bg-surface-container-high px-3 py-1 text-xs font-label font-medium text-outline transition-colors hover:text-on-surface"
-					>
-						<span class="material-symbols-outlined text-base leading-none">login</span>
-						Login to save
-					</a>
-				{/if}
+				<SaveToBoard
+					boards={boards}
+					user={user}
+					itemType="kanji"
+					itemId={kanji.literal}
+					serviceError={boardServiceError}
+					actionError={boardError}
+					busyBoardId={boardBusyId}
+					creatingBoard={creatingBoard}
+					onAdd={async ({ boardId }) => addToBoard(boardId)}
+					onRemove={async ({ boardId, cardId }) => removeFromBoard(boardId, cardId)}
+					onCreate={async ({ name }) => createBoardAndSave(name)}
+				/>
 			</div>
 
 			{#if isAuthenticated && boardServiceError}
 				<div class="rounded-[1.25rem] bg-surface-container-low p-4 text-sm leading-7 text-on-surface-variant">
 					<p class="font-label text-xs font-bold uppercase tracking-[0.24em] text-secondary">Board sync unavailable</p>
 					<p class="mt-2">{boardServiceError}</p>
-				</div>
-			{/if}
-
-			{#if boardPanelOpen && canManageBoards}
-				<div class="rounded-[1.75rem] bg-surface-container-low p-5">
-					<div class="flex items-center justify-between gap-4">
-						<div>
-							<p class="font-label text-xs font-bold uppercase tracking-[0.24em] text-secondary">Board picker</p>
-							<p class="mt-2 text-sm leading-7 text-on-surface-variant">
-								Save this kanji into one or more synced study boards.
-							</p>
-						</div>
-						<a
-							href="/bookmarks"
-							class="text-xs font-label uppercase tracking-[0.24em] text-primary hover:underline"
-						>
-							Manage boards
-						</a>
-					</div>
-
-					<div class="mt-5 grid gap-3">
-						{#if boards.length === 0}
-							<p class="text-sm leading-7 text-on-surface-variant">
-								No boards yet. Create one below and this kanji will be added immediately.
-							</p>
-						{:else}
-							{#each boards as board}
-								<button
-									type="button"
-									onclick={() => toggleBoard(board)}
-									disabled={boardBusyId === board.id}
-									class={`flex items-center justify-between rounded-[1.25rem] px-4 py-3 text-left transition-colors ${
-										board.containsLiteral
-											? 'bg-primary/10 text-primary'
-											: 'bg-surface-container-high text-on-surface hover:bg-surface-container-highest'
-									}`}
-								>
-									<div>
-										<p class="font-headline text-lg">{board.name}</p>
-										<p class="text-xs font-label uppercase tracking-[0.24em] text-outline">
-											{board.card_count} cards
-										</p>
-									</div>
-									<span class="material-symbols-outlined text-xl">
-										{boardBusyId === board.id
-											? 'progress_activity'
-											: board.containsLiteral
-												? 'check_circle'
-												: 'add_circle'}
-									</span>
-								</button>
-							{/each}
-						{/if}
-					</div>
-
-					<div class="mt-5 rounded-[1.25rem] bg-surface-container-high p-4">
-						<label class="block text-xs font-label font-bold uppercase tracking-[0.24em] text-outline" for="new-board-name">
-							Create new board
-						</label>
-						<div class="mt-3 flex flex-col gap-3 sm:flex-row">
-							<input
-								id="new-board-name"
-								bind:value={newBoardName}
-								type="text"
-								placeholder="Newspaper kanji"
-								class="flex-1 rounded-[1rem] bg-surface-container-highest px-4 py-3 font-body text-sm text-on-surface outline-none"
-							/>
-							<button
-								type="button"
-								onclick={createBoardAndSave}
-								disabled={creatingBoard}
-								class="inline-flex items-center justify-center rounded-full bg-primary px-5 py-3 text-sm font-label font-semibold text-on-primary transition-opacity hover:opacity-90 disabled:opacity-60"
-							>
-								{creatingBoard ? 'Creating…' : 'Create + Save'}
-							</button>
-						</div>
-					</div>
-
-					{#if boardError}
-						<div class="mt-4 rounded-[1.25rem] bg-error-container px-4 py-3 text-sm text-on-error-container">
-							{boardError}
-						</div>
-					{/if}
 				</div>
 			{/if}
 

@@ -1,10 +1,12 @@
 import { error } from '@sveltejs/kit';
 import db from '$lib/server/db';
+import { findBoardCard } from '$lib/server/cardFormatter';
+import { getBoard, getFlashcardErrorMessage, listBoards } from '$lib/server/flashcard';
 import type { PageServerLoad } from './$types';
 
 const KANJI_RE = /[\u4E00-\u9FFF\u3400-\u4DBF\uF900-\uFAFF]/g;
 
-export const load: PageServerLoad = async ({ params }) => {
+export const load: PageServerLoad = async ({ params, locals, cookies, fetch }) => {
 	const word = params.word;
 	if (!word || word.length > 20) error(400, 'Invalid word');
 
@@ -37,5 +39,51 @@ export const load: PageServerLoad = async ({ params }) => {
 	const kanjiMap = new Map(kanjiResult.rows.map((r) => [r.literal, r]));
 	const kanjiList = kanjiChars.map((c) => kanjiMap.get(c)).filter(Boolean);
 
-	return { vocab, kanjiList };
+	let boards:
+		| {
+				id: string;
+				name: string;
+				card_count: number;
+				isSaved: boolean;
+				cardId: string | null;
+		  }[]
+		| null = null;
+	let boardsError: string | null = null;
+
+	if (locals.user) {
+		const accessToken = cookies.get('access_token');
+		if (accessToken) {
+			try {
+				const boardSummaries = await listBoards(accessToken, fetch);
+				boards = await Promise.all(
+					boardSummaries.map(async (board) => {
+						try {
+							const detail = await getBoard(accessToken, board.id, fetch);
+							const matchingCard = findBoardCard(detail.cards, 'vocab', vocab.word);
+							return {
+								id: board.id,
+								name: board.name,
+								card_count: board.card_count,
+								isSaved: Boolean(matchingCard),
+								cardId: matchingCard?.id ?? null
+							};
+						} catch {
+							return {
+								id: board.id,
+								name: board.name,
+								card_count: board.card_count,
+								isSaved: false,
+								cardId: null
+							};
+						}
+					})
+				);
+			} catch (caught) {
+				boards = [];
+				boardsError = getFlashcardErrorMessage(caught);
+			}
+		}
+	}
+
+	return { vocab, kanjiList, boards, boardsError, user: locals.user };
 };

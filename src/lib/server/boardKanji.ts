@@ -1,5 +1,5 @@
 import db from '$lib/server/db';
-import { katakanaToHiragana } from '$lib/utils/kana';
+import { formatKanjiCard } from '$lib/server/cardFormatter';
 
 export type BoardKanjiRecord = {
 	literal: string;
@@ -12,21 +12,7 @@ export type BoardKanjiRecord = {
 };
 
 export function buildBoardFlashcard(kanji: Pick<BoardKanjiRecord, 'literal' | 'meanings' | 'on_readings' | 'kun_readings'>) {
-	const meanings = kanji.meanings.filter(Boolean);
-	const onReadings = kanji.on_readings.filter(Boolean);
-	const kunReadings = kanji.kun_readings.filter(Boolean);
-	const primaryReading = kunReadings[0] || (onReadings[0] ? katakanaToHiragana(onReadings[0]) : '');
-
-	return {
-		front: `${kanji.literal}\n${meanings.join(', ')}`,
-		back: [
-			onReadings.length ? `ON: ${onReadings.join(', ')}` : '',
-			kunReadings.length ? `KUN: ${kunReadings.join(', ')}` : ''
-		]
-			.filter(Boolean)
-			.join('\n'),
-		...(primaryReading ? { reading: primaryReading } : {})
-	};
+	return formatKanjiCard(kanji);
 }
 
 export async function fetchKanjiRecord(literal: string) {

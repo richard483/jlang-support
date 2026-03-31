@@ -1,5 +1,6 @@
 import { env as privateEnv } from '$env/dynamic/private';
 import { env as publicEnv } from '$env/dynamic/public';
+import { parseCardType } from '$lib/server/cardFormatter';
 
 const DEFAULT_FLASHCARD_APP_URL = 'https://fc.nephren.xyz';
 const DEFAULT_FLASHCARD_API_URL = DEFAULT_FLASHCARD_APP_URL;
@@ -236,8 +237,8 @@ export async function removeCardFromBoard(
 }
 
 export function extractKanjiLiteralFromFront(frontText: string) {
-	const literal = frontText.split('\n')[0]?.trim() ?? '';
-	return [...literal].length === 1 ? literal : null;
+	const parsed = parseCardType(frontText);
+	return parsed.type === 'kanji' && [...parsed.identifier].length === 1 ? parsed.identifier : null;
 }
 
 export function findKanjiCard(cards: BoardCard[], literal: string) {

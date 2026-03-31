@@ -1,8 +1,7 @@
 import { error as httpError, redirect } from '@sveltejs/kit';
-import { fetchKanjiMap } from '$lib/server/boardKanji';
+import { getCardSummary, parseCardType } from '$lib/server/cardFormatter';
 import {
 	FlashcardApiError,
-	extractKanjiLiteralFromFront,
 	getBoard,
 	getFlashcardAppUrl,
 	getFlashcardErrorMessage
@@ -25,21 +24,14 @@ export const load: PageServerLoad = async ({ locals, url, params, cookies, fetch
 
 	try {
 		const board = await getBoard(accessToken, params.id, fetch);
-		const literals = board.cards
-			.map((card) => extractKanjiLiteralFromFront(card.front_text))
-			.filter((literal): literal is string => Boolean(literal));
-		const kanjiMap = await fetchKanjiMap(literals);
 
 		return {
 			board: board.deck,
-			cards: board.cards.map((card) => {
-				const literal = extractKanjiLiteralFromFront(card.front_text);
-				return {
-					...card,
-					literal,
-					kanji: literal ? (kanjiMap.get(literal) ?? null) : null
-				};
-			}),
+			cards: board.cards.map((card) => ({
+				...card,
+				...parseCardType(card.front_text),
+				summary: getCardSummary(card.front_text)
+			})),
 			serviceError: null,
 			flashcardAppUrl: getFlashcardAppUrl()
 		};

@@ -138,7 +138,7 @@ export const load: PageServerLoad = async ({ params, locals, cookies, fetch }) =
 				id: string;
 				name: string;
 				card_count: number;
-				containsLiteral: boolean;
+				isSaved: boolean;
 				cardId: string | null;
 		  }[]
 		| null = null;
@@ -156,7 +156,7 @@ export const load: PageServerLoad = async ({ params, locals, cookies, fetch }) =
 							id: board.id,
 							name: board.name,
 							card_count: board.card_count,
-							containsLiteral: Boolean(matchingCard),
+							isSaved: Boolean(matchingCard),
 							cardId: matchingCard?.id ?? null
 						};
 					} catch {
@@ -164,7 +164,7 @@ export const load: PageServerLoad = async ({ params, locals, cookies, fetch }) =
 							id: board.id,
 							name: board.name,
 							card_count: board.card_count,
-							containsLiteral: false,
+							isSaved: false,
 							cardId: null
 						};
 					}

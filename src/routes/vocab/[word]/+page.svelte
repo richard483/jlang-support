@@ -1,10 +1,152 @@
 <script lang="ts">
+	import SaveToBoard from '$lib/components/SaveToBoard.svelte';
 	import type { PageData } from './$types';
 	import StrokeOrder from '$lib/components/StrokeOrder.svelte';
 	import { formatReading, katakanaToHiragana } from '$lib/utils/kana';
 
 	let { data }: { data: PageData } = $props();
-	let { vocab, kanjiList } = $derived(data);
+	type BoardMembership = {
+		id: string;
+		name: string;
+		card_count: number;
+		isSaved: boolean;
+		cardId: string | null;
+	};
+
+	let { vocab, kanjiList, boards: initialBoards, boardsError: initialBoardsError, user } = $derived(data);
+	let boards = $state<BoardMembership[]>([]);
+	let boardError = $state('');
+	let boardBusyId = $state('');
+	let creatingBoard = $state(false);
+	let boardServiceError = $state('');
+
+	$effect(() => {
+		boards = [...(initialBoards ?? [])];
+		boardServiceError = initialBoardsError ?? '';
+		boardError = '';
+	});
+
+	async function addToBoard(boardId: string) {
+		boardError = '';
+		boardBusyId = boardId;
+
+		try {
+			const response = await fetch(`/api/boards/${encodeURIComponent(boardId)}/vocab`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ word: vocab.word })
+			});
+			const payload = (await response.json().catch(() => ({}))) as {
+				message?: string;
+				card_id?: string;
+				already_exists?: boolean;
+			};
+			if (!response.ok) {
+				throw new Error(payload.message || 'Failed to update board.');
+			}
+
+			boards = boards.map((current) =>
+				current.id !== boardId
+					? current
+					: {
+							...current,
+							isSaved: true,
+							cardId: payload.card_id ?? current.cardId,
+							card_count: current.card_count + (payload.already_exists ? 0 : 1)
+						}
+			);
+		} catch (error) {
+			boardError = error instanceof Error ? error.message : 'Failed to update board.';
+		} finally {
+			boardBusyId = '';
+		}
+	}
+
+	async function removeFromBoard(boardId: string, cardId?: string) {
+		if (!cardId) {
+			boardError = 'Card not found.';
+			return;
+		}
+
+		boardError = '';
+		boardBusyId = boardId;
+
+		try {
+			const response = await fetch(`/api/boards/${encodeURIComponent(boardId)}/vocab`, {
+				method: 'DELETE',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ card_id: cardId, word: vocab.word })
+			});
+			const payload = (await response.json().catch(() => ({}))) as { message?: string };
+			if (!response.ok) {
+				throw new Error(payload.message || 'Failed to remove vocabulary from board.');
+			}
+
+			boards = boards.map((current) =>
+				current.id !== boardId
+					? current
+					: {
+							...current,
+							isSaved: false,
+							cardId: null,
+							card_count: Math.max(0, current.card_count - 1)
+						}
+			);
+		} catch (error) {
+			boardError = error instanceof Error ? error.message : 'Failed to remove vocabulary from board.';
+		} finally {
+			boardBusyId = '';
+		}
+	}
+
+	async function createBoardAndSave(name: string) {
+		creatingBoard = true;
+		boardError = '';
+
+		try {
+			const createResponse = await fetch('/api/boards', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ name })
+			});
+			const createPayload = (await createResponse.json().catch(() => ({}))) as {
+				message?: string;
+				deck_id?: string;
+			};
+			if (!createResponse.ok || !createPayload.deck_id) {
+				throw new Error(createPayload.message || 'Failed to create board.');
+			}
+
+			const addResponse = await fetch(`/api/boards/${encodeURIComponent(createPayload.deck_id)}/vocab`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ word: vocab.word })
+			});
+			const addPayload = (await addResponse.json().catch(() => ({}))) as {
+				message?: string;
+				card_id?: string;
+			};
+			if (!addResponse.ok) {
+				throw new Error(addPayload.message || 'Failed to save vocabulary to the new board.');
+			}
+
+			boards = [
+				{
+					id: createPayload.deck_id,
+					name,
+					card_count: 1,
+					isSaved: true,
+					cardId: addPayload.card_id ?? null
+				},
+				...boards
+			];
+		} catch (error) {
+			boardError = error instanceof Error ? error.message : 'Failed to create board.';
+			throw error;
+		} finally {
+			creatingBoard = false;
+		}
+	}
 </script>
 
 <svelte:head>
@@ -24,6 +166,19 @@
 				{#if vocab.alt_forms && vocab.alt_forms.length > 0}
 					<span class="text-xs font-label text-outline px-3 py-1 bg-surface-container-high rounded-full">Also: {vocab.alt_forms.join('、')}</span>
 				{/if}
+				<SaveToBoard
+					boards={boards}
+					user={user}
+					itemType="vocab"
+					itemId={vocab.word}
+					serviceError={boardServiceError}
+					actionError={boardError}
+					busyBoardId={boardBusyId}
+					creatingBoard={creatingBoard}
+					onAdd={async ({ boardId }) => addToBoard(boardId)}
+					onRemove={async ({ boardId, cardId }) => removeFromBoard(boardId, cardId)}
+					onCreate={async ({ name }) => createBoardAndSave(name)}
+				/>
 			</div>
 
 			<!-- Word -->
@@ -59,6 +214,13 @@
 			</ol>
 		</div>
 	</section>
+
+	{#if user && boardServiceError}
+		<div class="rounded-[1.25rem] bg-surface-container-low p-4 text-sm leading-7 text-on-surface-variant">
+			<p class="font-label text-xs font-bold uppercase tracking-[0.24em] text-secondary">Board sync unavailable</p>
+			<p class="mt-2">{boardServiceError}</p>
+		</div>
+	{/if}
 
 	<!-- ── Component Kanji ───────────────────────────────────────────────────── -->
 	{#if kanjiList.length > 0}

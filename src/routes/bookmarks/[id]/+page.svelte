@@ -7,16 +7,9 @@
 		back_text: string;
 		reading_text: string | null;
 		position: number;
-		literal: string | null;
-		kanji: {
-			literal: string;
-			meanings: string[];
-			on_readings: string[];
-			kun_readings: string[];
-			jlpt_level: number | null;
-			grade: number | null;
-			stroke_count: number | null;
-		} | null;
+		type: 'kanji' | 'vocab' | 'unknown';
+		identifier: string;
+		summary: string;
 	};
 
 	let { data }: { data: PageData } = $props();
@@ -33,14 +26,15 @@
 			return;
 		}
 
-		const response = await fetch(`/api/boards/${encodeURIComponent(data.board.id)}/kanji`, {
+		const route = card.type === 'vocab' ? 'vocab' : 'kanji';
+		const response = await fetch(`/api/boards/${encodeURIComponent(data.board.id)}/${route}`, {
 			method: 'DELETE',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({ card_id: card.id })
 		});
 		const payload = (await response.json().catch(() => ({}))) as { message?: string };
 		if (!response.ok) {
-			actionError = payload.message || 'Failed to remove kanji from board.';
+			actionError = payload.message || 'Failed to remove item from board.';
 			return;
 		}
 
@@ -61,7 +55,7 @@
 			</a>
 			<h1 class="mt-3 font-headline text-4xl font-bold text-on-surface">{data.board?.name ?? 'Board'}</h1>
 			<p class="mt-2 text-sm leading-7 text-on-surface-variant">
-				Remove kanji here or switch to Rein Flashcard to study the same synced deck.
+				Remove kanji or vocabulary here, or switch to Rein Flashcard to study the same synced deck.
 			</p>
 		</div>
 
@@ -93,7 +87,7 @@
 		<div class="rounded-[1.75rem] bg-surface-container-lowest p-10 text-center">
 			<span class="material-symbols-outlined block text-5xl text-outline-variant">bookmark_add</span>
 			<p class="mt-4 font-headline text-2xl text-on-surface">This board is empty.</p>
-			<p class="mt-2 text-sm text-on-surface-variant">Open a kanji detail page and save a character into this board.</p>
+			<p class="mt-2 text-sm text-on-surface-variant">Open a kanji or vocabulary detail page and save an item into this board.</p>
 		</div>
 	{:else}
 		<div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -101,16 +95,34 @@
 				<article class="rounded-[1.75rem] bg-surface-container-lowest p-6">
 					<div class="flex items-start justify-between gap-4">
 						<div class="flex items-start gap-4">
-							{#if card.literal}
-								<span class="font-headline text-6xl leading-none text-primary">{card.literal}</span>
+							{#if card.type === 'kanji' && [...card.identifier].length === 1}
+								<span class="font-headline text-6xl leading-none text-primary">{card.identifier}</span>
+							{:else}
+								<div class="rounded-[1.25rem] bg-surface-container-high px-4 py-3 text-sm font-label font-semibold uppercase tracking-[0.24em] text-secondary">
+									{card.type === 'vocab' ? 'Vocab' : 'Card'}
+								</div>
 							{/if}
 							<div class="space-y-1">
-								<p class="text-sm font-body font-medium text-on-surface">
-									{card.kanji?.meanings?.slice(0, 3).join(', ') || card.front_text.split('\n').slice(1).join(' ')}
-								</p>
-								{#if card.kanji?.jlpt_level}
-									<p class="text-xs font-label uppercase tracking-[0.24em] text-secondary">
-										JLPT N{card.kanji.jlpt_level}
+								<div class="flex flex-wrap items-center gap-2">
+									{#if card.type === 'vocab' || card.type === 'kanji'}
+										<a
+											href={card.type === 'vocab'
+												? `/vocab/${encodeURIComponent(card.identifier)}`
+												: `/kanji/${encodeURIComponent(card.identifier)}`}
+											class="font-headline text-2xl text-on-surface hover:text-primary"
+										>
+											{card.identifier}
+										</a>
+									{:else}
+										<p class="font-headline text-2xl text-on-surface">{card.identifier}</p>
+									{/if}
+									<span class="rounded-full bg-surface-container-high px-3 py-1 text-[10px] font-label font-bold uppercase tracking-[0.24em] text-outline">
+										{card.type === 'vocab' ? 'Vocab' : card.type === 'kanji' ? 'Kanji' : 'Card'}
+									</span>
+								</div>
+								{#if card.summary}
+									<p class="text-sm font-body font-medium text-on-surface">
+										{card.summary}
 									</p>
 								{/if}
 							</div>
@@ -125,7 +137,9 @@
 					</div>
 
 					<div class="mt-5 space-y-3 text-sm leading-7 text-on-surface-variant">
-						<p>{card.back_text}</p>
+						{#if card.back_text}
+							<p>{card.back_text}</p>
+						{/if}
 						{#if card.reading_text}
 							<p class="font-label text-xs uppercase tracking-[0.24em] text-outline">
 								Primary reading: {card.reading_text}
