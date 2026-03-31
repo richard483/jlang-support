@@ -27,6 +27,12 @@ export type AuthRefreshData = {
 	expires_in: number;
 };
 
+type AuthEnvelope<T> = {
+	status?: number;
+	message?: string;
+	data?: T;
+};
+
 export class AuthApiError extends Error {
 	status: number;
 	body: Record<string, unknown>;
@@ -101,8 +107,24 @@ export function getAuthUsername(user: AuthUser) {
 	return user.username ?? user.user_name ?? '';
 }
 
+function unwrapAuthPayload<T>(payload: T | AuthEnvelope<T>) {
+	if (payload && typeof payload === 'object' && 'data' in payload) {
+		const record = payload as AuthEnvelope<T>;
+		if (record.data !== undefined) {
+			return record.data;
+		}
+	}
+
+	return payload as T;
+}
+
 export async function login(user_name: string, password: string, fetcher: typeof fetch = fetch) {
-	return authRequest<AuthLoginData>('/auth/login', { user_name, password }, fetcher);
+	const payload = await authRequest<AuthLoginData | AuthEnvelope<AuthLoginData>>(
+		'/auth/login',
+		{ user_name, password },
+		fetcher
+	);
+	return unwrapAuthPayload(payload);
 }
 
 export async function register(
@@ -120,7 +142,12 @@ export async function register(
 }
 
 export async function refresh(refresh_token: string, fetcher: typeof fetch = fetch) {
-	return authRequest<AuthRefreshData>('/auth/refresh', { refresh_token }, fetcher);
+	const payload = await authRequest<AuthRefreshData | AuthEnvelope<AuthRefreshData>>(
+		'/auth/refresh',
+		{ refresh_token },
+		fetcher
+	);
+	return unwrapAuthPayload(payload);
 }
 
 export async function logout(

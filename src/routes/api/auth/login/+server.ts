@@ -15,6 +15,9 @@ export const POST: RequestHandler = async ({ request, cookies, fetch, url }) => 
 
 	try {
 		const payload = await login(body.user_name, body.password, fetch);
+		if (!payload?.user?.id) {
+			return json({ message: 'Login response is missing user data.' }, { status: 502 });
+		}
 		setLoginCookies(cookies, url, payload);
 		return json({ user: payload.user });
 	} catch (error) {

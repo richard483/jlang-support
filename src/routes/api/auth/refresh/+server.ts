@@ -13,6 +13,9 @@ export const POST: RequestHandler = async ({ request, cookies, fetch, url }) => 
 
 	try {
 		const payload = await refresh(refreshToken, fetch);
+		if (!payload?.access_token) {
+			return json({ message: 'Refresh response is missing an access token.' }, { status: 502 });
+		}
 		setRefreshCookies(cookies, url, payload);
 		return json(payload);
 	} catch (error) {
