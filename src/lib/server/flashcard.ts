@@ -3,6 +3,7 @@ import { env as publicEnv } from '$env/dynamic/public';
 
 const DEFAULT_FLASHCARD_API_URL = 'http://10.10.10.39:30039';
 const DEFAULT_FLASHCARD_APP_URL = 'https://fc.nephren.xyz';
+const DEFAULT_FLASHCARD_TIMEOUT_MS = 3000;
 const JLANG_SOURCE = 'jlang-support';
 
 export type BoardSummary = {
@@ -60,6 +61,11 @@ function getFlashcardApiUrl() {
 	);
 }
 
+function getFlashcardTimeoutMs() {
+	const rawTimeout = Number(privateEnv.PRIVATE_FLASHCARD_API_TIMEOUT_MS);
+	return Number.isFinite(rawTimeout) && rawTimeout > 0 ? rawTimeout : DEFAULT_FLASHCARD_TIMEOUT_MS;
+}
+
 export function getFlashcardAppUrl() {
 	return normalizeBaseUrl(publicEnv.PUBLIC_FLASHCARD_APP_URL, DEFAULT_FLASHCARD_APP_URL);
 }
@@ -83,6 +89,9 @@ async function flashcardRequest<T>(
 		fetcher?: typeof fetch;
 	}
 ) {
+	const controller = new AbortController();
+	const timeout = setTimeout(() => controller.abort(), getFlashcardTimeoutMs());
+
 	try {
 		const response = await (options?.fetcher ?? fetch)(`${getFlashcardApiUrl()}${path}`, {
 			method: options?.method ?? 'GET',
@@ -90,6 +99,7 @@ async function flashcardRequest<T>(
 				Authorization: `Bearer ${accessToken}`,
 				...(options?.body ? { 'Content-Type': 'application/json' } : {})
 			},
+			signal: controller.signal,
 			...(options?.body ? { body: JSON.stringify(options.body) } : {})
 		});
 
@@ -112,6 +122,8 @@ async function flashcardRequest<T>(
 		throw new FlashcardApiError(503, {
 			message: 'Flashcard service is temporarily unavailable. Your boards will be back when the service recovers.'
 		});
+	} finally {
+		clearTimeout(timeout);
 	}
 }
 
