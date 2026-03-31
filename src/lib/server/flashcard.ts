@@ -3,6 +3,7 @@ import { env as publicEnv } from '$env/dynamic/public';
 
 const DEFAULT_FLASHCARD_APP_URL = 'https://fc.nephren.xyz';
 const DEFAULT_FLASHCARD_API_URL = DEFAULT_FLASHCARD_APP_URL;
+const LEGACY_INTERNAL_FLASHCARD_API_URL = 'http://10.10.10.39:30039';
 const DEFAULT_FLASHCARD_TIMEOUT_MS = 3000;
 const JLANG_SOURCE = 'jlang-support';
 
@@ -55,10 +56,16 @@ function normalizeBaseUrl(value: string | undefined, fallback: string) {
 }
 
 function getFlashcardApiUrl() {
-	return normalizeBaseUrl(
+	const configuredUrl = normalizeBaseUrl(
 		privateEnv.PRIVATE_FLASHCARD_API_URL || privateEnv.PRIVATE_FLASHCARD_BASE_URL,
-		DEFAULT_FLASHCARD_API_URL
+		''
 	);
+
+	if (!configuredUrl || configuredUrl === LEGACY_INTERNAL_FLASHCARD_API_URL) {
+		return DEFAULT_FLASHCARD_API_URL;
+	}
+
+	return configuredUrl;
 }
 
 function getFlashcardTimeoutMs() {
@@ -97,6 +104,7 @@ async function flashcardRequest<T>(
 			method: options?.method ?? 'GET',
 			headers: {
 				Authorization: `Bearer ${accessToken}`,
+				Cookie: `access_token=${encodeURIComponent(accessToken)}`,
 				...(options?.body ? { 'Content-Type': 'application/json' } : {})
 			},
 			signal: controller.signal,
