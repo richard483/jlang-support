@@ -1,35 +1,37 @@
 const POS_DISPLAY_LABELS = new Map<string, string>([
-	['Adverb (fukushi)', 'Adverb'],
-	['Conjunction', 'Conjunction'],
-	['Counter', 'Counter'],
-	['Expression (phrase, clause, etc.)', 'Expression'],
-	['Expressions (phrases, clauses, etc.)', 'Expression'],
-	['Ichidan verb', 'Ichidan verb'],
-	['Intransitive verb', 'Intransitive'],
-	['Interjection (kandoushi)', 'Interjection'],
-	['Kuru verb - special class', 'Kuru verb'],
-	['Na-adjective (keiyodoshi)', 'Na-adjective'],
-	['Noun (common) (futsuumeishi)', 'Noun'],
-	['Particle', 'Particle'],
-	['Prefix', 'Prefix'],
-	['Pronoun', 'Pronoun'],
-	['Suru verb - included', 'Suru verb'],
-	['Suru verb - special class', 'Suru verb'],
-	['Suffix', 'Suffix'],
-	['Transitive verb', 'Transitive'],
-	['I-adjective (keiyoushi)', 'I-adjective']
+	['adverb (fukushi)', 'Adverb'],
+	['conjunction', 'Conjunction'],
+	['counter', 'Counter'],
+	['expression (phrase, clause, etc.)', 'Expression'],
+	['expressions (phrases, clauses, etc.)', 'Expression'],
+	['ichidan verb', 'Ichidan verb'],
+	['intransitive verb', 'Intransitive'],
+	['interjection (kandoushi)', 'Interjection'],
+	['kuru verb - special class', 'Kuru verb'],
+	['na-adjective (keiyodoshi)', 'Na-adjective'],
+	['noun (common) (futsuumeishi)', 'Noun'],
+	['particle', 'Particle'],
+	['prefix', 'Prefix'],
+	['pronoun', 'Pronoun'],
+	['suru verb - included', 'Suru verb'],
+	['suru verb - special class', 'Suru verb'],
+	['suffix', 'Suffix'],
+	['transitive verb', 'Transitive'],
+	['i-adjective (keiyoushi)', 'I-adjective']
 ]);
 
 export function formatPosTag(tag: string) {
-	if (POS_DISPLAY_LABELS.has(tag)) {
-		return POS_DISPLAY_LABELS.get(tag) ?? tag;
+	const normalized = tag.trim().toLowerCase();
+
+	if (POS_DISPLAY_LABELS.has(normalized)) {
+		return POS_DISPLAY_LABELS.get(normalized) ?? tag;
 	}
 
-	if (tag.startsWith('Godan verb')) {
+	if (normalized.startsWith('godan verb')) {
 		return 'Godan verb';
 	}
 
-	if (tag.startsWith('Noun')) {
+	if (normalized.startsWith('noun')) {
 		return 'Noun';
 	}
 
