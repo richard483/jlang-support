@@ -3,6 +3,7 @@
 	import type { PageData } from './$types';
 	import StrokeOrder from '$lib/components/StrokeOrder.svelte';
 	import { formatReading, katakanaToHiragana } from '$lib/utils/kana';
+	import { getDisplayPosTags } from '$lib/utils/posTags';
 
 	let { data }: { data: PageData } = $props();
 	type BoardMembership = {
@@ -156,8 +157,24 @@
 <div class="space-y-20 py-4">
 
 	<!-- ── Hero ──────────────────────────────────────────────────────────────── -->
-	<section class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-end border-b border-outline-variant/30 pb-10">
-		<div class="lg:col-span-7 space-y-5">
+	<section class="relative grid grid-cols-1 gap-8 items-end border-b border-outline-variant/30 pb-10 lg:grid-cols-12">
+		<div class="absolute top-0 right-0 z-10">
+			<SaveToBoard
+				boards={boards}
+				user={user}
+				itemType="vocab"
+				itemId={vocab.word}
+				serviceError={boardServiceError}
+				actionError={boardError}
+				busyBoardId={boardBusyId}
+				creatingBoard={creatingBoard}
+				onAdd={async ({ boardId }) => addToBoard(boardId)}
+				onRemove={async ({ boardId, cardId }) => removeFromBoard(boardId, cardId)}
+				onCreate={async ({ name }) => createBoardAndSave(name)}
+			/>
+		</div>
+
+		<div class="space-y-5 pt-14 sm:pt-0 lg:col-span-7">
 			<!-- Badges -->
 			<div class="flex items-center gap-2 flex-wrap">
 				{#if vocab.is_common}
@@ -166,19 +183,11 @@
 				{#if vocab.alt_forms && vocab.alt_forms.length > 0}
 					<span class="text-xs font-label text-outline px-3 py-1 bg-surface-container-high rounded-full">Also: {vocab.alt_forms.join('、')}</span>
 				{/if}
-				<SaveToBoard
-					boards={boards}
-					user={user}
-					itemType="vocab"
-					itemId={vocab.word}
-					serviceError={boardServiceError}
-					actionError={boardError}
-					busyBoardId={boardBusyId}
-					creatingBoard={creatingBoard}
-					onAdd={async ({ boardId }) => addToBoard(boardId)}
-					onRemove={async ({ boardId, cardId }) => removeFromBoard(boardId, cardId)}
-					onCreate={async ({ name }) => createBoardAndSave(name)}
-				/>
+				{#each getDisplayPosTags(vocab.pos_tags, 4) as tag}
+					<span class="text-xs font-label font-bold uppercase tracking-widest text-primary px-3 py-1 bg-primary/10 rounded-full">
+						{tag}
+					</span>
+				{/each}
 			</div>
 
 			<!-- Word -->

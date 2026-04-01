@@ -27,16 +27,49 @@ interface VocabEntry {
 	altForms: string[];
 	readings: string[];
 	meanings: string[];
+	posTags: string[];
 	isCommon: boolean;
 	kanjiChars: string[];
 }
 
-function parseJMdict(xml: string): VocabEntry[] {
+function extractEntityMap(xml: string) {
+	const entities = new Map<string, string>();
+	const doctypeMatch = xml.match(/<!DOCTYPE[^[]*\[([\s\S]*?)\]>/m);
+	if (!doctypeMatch) {
+		return entities;
+	}
+
+	const entityRegex = /<!ENTITY\s+(\S+)\s+"([^"]+)">/g;
+	let match: RegExpExecArray | null;
+	while ((match = entityRegex.exec(doctypeMatch[1])) !== null) {
+		entities.set(match[1], match[2]);
+	}
+
+	return entities;
+}
+
+function resolveEntityReferences(value: string, entityMap: Map<string, string>) {
+	return value.replace(/&([\w.-]+);/g, (fullMatch, name) => entityMap.get(name) ?? fullMatch);
+}
+
+function getTextValue(
+	value:
+		| string
+		| {
+				'#text'?: string;
+				'@_xml:lang'?: string;
+		  }
+		| undefined
+) {
+	return typeof value === 'string' ? value : value?.['#text'] ?? '';
+}
+
+function parseJMdict(xml: string, entityMap: Map<string, string>): VocabEntry[] {
 	const parser = new XMLParser({
 		ignoreAttributes: false,
 		attributeNamePrefix: '@_',
 		isArray: (name) =>
-			['entry', 'k_ele', 'r_ele', 'sense', 'gloss', 'ke_pri', 're_pri', 're_restr'].includes(name)
+			['entry', 'k_ele', 'r_ele', 'sense', 'gloss', 'ke_pri', 're_pri', 're_restr', 'pos'].includes(name)
 	});
 
 	const result = parser.parse(xml);
@@ -54,16 +87,34 @@ function parseJMdict(xml: string): VocabEntry[] {
 		const readings = rEles.map((r) => String(r.reb));
 
 		// Collect all English glosses across all senses
-		const senses: { gloss?: { '#text'?: string; '@_xml:lang'?: string } | string | (string | { '#text'?: string; '@_xml:lang'?: string })[] }[] =
+		const senses: {
+			gloss?:
+				| { '#text'?: string; '@_xml:lang'?: string }
+				| string
+				| (string | { '#text'?: string; '@_xml:lang'?: string })[];
+			pos?:
+				| { '#text'?: string; '@_xml:lang'?: string }
+				| string
+				| (string | { '#text'?: string; '@_xml:lang'?: string })[];
+		}[] =
 			entry.sense ?? [];
 		const meanings: string[] = [];
+		const posTags: string[] = [];
 		for (const sense of senses) {
 			const glosses = Array.isArray(sense.gloss) ? sense.gloss : sense.gloss ? [sense.gloss] : [];
 			for (const g of glosses) {
 				const lang = typeof g === 'object' ? g['@_xml:lang'] : undefined;
 				if (lang && lang !== 'eng') continue; // skip non-English
-				const text = typeof g === 'string' ? g : g['#text'];
+				const text = getTextValue(g);
 				if (text) meanings.push(text);
+			}
+
+			const sensePos = Array.isArray(sense.pos) ? sense.pos : sense.pos ? [sense.pos] : [];
+			for (const pos of sensePos) {
+				const resolved = resolveEntityReferences(getTextValue(pos), entityMap).trim();
+				if (resolved && !posTags.includes(resolved)) {
+					posTags.push(resolved);
+				}
 			}
 		}
 
@@ -79,7 +130,7 @@ function parseJMdict(xml: string): VocabEntry[] {
 		const kanjiChars = [...new Set(allText.match(KANJI_RE) ?? [])];
 		if (kanjiChars.length === 0) continue; // no kanji characters at all
 
-		entries.push({ id, word, altForms, readings, meanings, isCommon, kanjiChars });
+		entries.push({ id, word, altForms, readings, meanings, posTags, isCommon, kanjiChars });
 	}
 
 	return entries;
@@ -90,13 +141,15 @@ async function main() {
 
 	console.log(`Reading ${DATA_FILE}...`);
 	let xml = readFileSync(DATA_FILE, 'utf-8');
+	const entityMap = extractEntityMap(xml);
 
 	// JMdict has hundreds of DOCTYPE entity definitions that exceed fast-xml-parser's
 	// default entity limit. Strip the entire DOCTYPE block before parsing.
 	xml = xml.replace(/<!DOCTYPE[^[]*\[[\s\S]*?\]>/m, '');
+	xml = xml.replace(/&([\w.-]+);/g, (fullMatch, name) => entityMap.get(name) ?? fullMatch);
 
 	console.log('Parsing JMdict...');
-	const entries = parseJMdict(xml);
+	const entries = parseJMdict(xml, entityMap);
 	console.log(`Parsed ${entries.length} vocab entries with kanji forms`);
 
 	const client = await pool.connect();
@@ -108,13 +161,21 @@ async function main() {
 		let inserted = 0;
 		for (const entry of entries) {
 			await client.query(
-				`INSERT INTO vocab (id, word, alt_forms, readings, meanings, is_common)
-				 VALUES ($1, $2, $3, $4, $5, $6)
+				`INSERT INTO vocab (id, word, alt_forms, readings, meanings, pos_tags, is_common)
+				 VALUES ($1, $2, $3, $4, $5, $6, $7)
 				 ON CONFLICT (id) DO UPDATE SET
 				   word = EXCLUDED.word, alt_forms = EXCLUDED.alt_forms,
 				   readings = EXCLUDED.readings, meanings = EXCLUDED.meanings,
-				   is_common = EXCLUDED.is_common`,
-				[entry.id, entry.word, entry.altForms, entry.readings, entry.meanings, entry.isCommon]
+				   pos_tags = EXCLUDED.pos_tags, is_common = EXCLUDED.is_common`,
+				[
+					entry.id,
+					entry.word,
+					entry.altForms,
+					entry.readings,
+					entry.meanings,
+					entry.posTags,
+					entry.isCommon
+				]
 			);
 
 			for (const ch of entry.kanjiChars) {

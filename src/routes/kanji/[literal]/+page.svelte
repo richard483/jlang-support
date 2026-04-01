@@ -2,6 +2,7 @@
 	import SaveToBoard from '$lib/components/SaveToBoard.svelte';
 	import StrokeOrder from '$lib/components/StrokeOrder.svelte';
 	import { formatReading, katakanaToHiragana } from '$lib/utils/kana';
+	import { getDisplayPosTags } from '$lib/utils/posTags';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -206,9 +207,25 @@
 <div class="space-y-20 py-4">
 
 	<!-- ── 1. Hero ────────────────────────────────────────────────────────────── -->
-	<section class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-end">
+	<section class="relative grid grid-cols-1 gap-8 items-end lg:grid-cols-12">
+		<div class="absolute top-0 right-0 z-10">
+			<SaveToBoard
+				boards={boards}
+				user={user}
+				itemType="kanji"
+				itemId={kanji.literal}
+				serviceError={boardServiceError}
+				actionError={boardError}
+				busyBoardId={boardBusyId}
+				creatingBoard={creatingBoard}
+				onAdd={async ({ boardId }) => addToBoard(boardId)}
+				onRemove={async ({ boardId, cardId }) => removeFromBoard(boardId, cardId)}
+				onCreate={async ({ name }) => createBoardAndSave(name)}
+			/>
+		</div>
+
 		<!-- Left: meta -->
-		<div class="lg:col-span-5 space-y-5">
+		<div class="space-y-5 pt-14 sm:pt-0 lg:col-span-5">
 			<div class="flex items-center gap-3 flex-wrap">
 				{#if kanji.jlpt_level}
 					<span class="text-xs font-label font-bold text-secondary tracking-widest uppercase px-3 py-1 bg-secondary-container/20 rounded-full">JLPT N{kanji.jlpt_level}</span>
@@ -219,19 +236,6 @@
 				{#if kanji.frequency}
 					<span class="text-xs font-label text-outline px-3 py-1 bg-surface-container-high rounded-full">Freq #{kanji.frequency}</span>
 				{/if}
-				<SaveToBoard
-					boards={boards}
-					user={user}
-					itemType="kanji"
-					itemId={kanji.literal}
-					serviceError={boardServiceError}
-					actionError={boardError}
-					busyBoardId={boardBusyId}
-					creatingBoard={creatingBoard}
-					onAdd={async ({ boardId }) => addToBoard(boardId)}
-					onRemove={async ({ boardId, cardId }) => removeFromBoard(boardId, cardId)}
-					onCreate={async ({ name }) => createBoardAndSave(name)}
-				/>
 			</div>
 
 			{#if isAuthenticated && boardServiceError}
@@ -303,9 +307,9 @@
 					<div class="flex gap-2 flex-wrap">
 						{#each radicals as r}
 							<a
-								href="/kanji/{encodeURIComponent(r)}"
+								href="/browse?radicals={encodeURIComponent(r)}"
 								class="font-headline text-2xl px-3 py-1.5 bg-surface-container-low hover:bg-surface-container transition-colors rounded-lg text-on-surface"
-								title="View {r}"
+								title="Browse kanji with {r}"
 							>{r}</a>
 						{/each}
 					</div>
@@ -490,6 +494,13 @@
 						</div>
 						<p class="text-sm text-outline font-body mb-1">{v.readings[0]}</p>
 						<p class="text-sm text-on-surface-variant font-body line-clamp-2">{v.meanings[0]}</p>
+						{#if v.pos_tags.length > 0}
+							<div class="mt-2 flex flex-wrap gap-1.5">
+								{#each getDisplayPosTags(v.pos_tags, 2) as tag}
+									<span class="text-[10px] font-label uppercase tracking-[0.2em] text-outline">{tag}</span>
+								{/each}
+							</div>
+						{/if}
 					</a>
 				{/each}
 			</div>

@@ -24,7 +24,13 @@ export const load: PageServerLoad = async ({ params, locals, cookies, fetch }) =
 				});
 
 	const [vocabResult, boardData] = await Promise.all([
-		db.query('SELECT * FROM vocab WHERE word = $1 OR $1 = ANY(alt_forms) LIMIT 1', [word]),
+		db.query(
+			`SELECT id, word, alt_forms, readings, meanings, pos_tags, is_common
+			 FROM vocab
+			 WHERE word = $1 OR $1 = ANY(alt_forms)
+			 LIMIT 1`,
+			[word]
+		),
 		boardPromise
 	]);
 	if (vocabResult.rows.length === 0) error(404, `Word "${word}" not found`);
@@ -35,6 +41,7 @@ export const load: PageServerLoad = async ({ params, locals, cookies, fetch }) =
 		alt_forms: string[];
 		readings: string[];
 		meanings: string[];
+		pos_tags: string[];
 		is_common: boolean;
 	};
 

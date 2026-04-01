@@ -7,7 +7,12 @@ const DEFAULT_FLASHCARD_API_URL = DEFAULT_FLASHCARD_APP_URL;
 const LEGACY_INTERNAL_FLASHCARD_API_URL = 'http://10.10.10.39:30039';
 const DEFAULT_FLASHCARD_TIMEOUT_MS = 3000;
 const JLANG_SOURCE = 'jlang-support';
-export const BOARD_CARD_LAYOUTS = ['character-front', 'meaning-front', 'reading-front'] as const;
+export const BOARD_CARD_LAYOUTS = [
+	'character-front',
+	'character-reading-front',
+	'meaning-front',
+	'reading-front'
+] as const;
 export type CardLayout = (typeof BOARD_CARD_LAYOUTS)[number];
 
 export type BoardSummary = {

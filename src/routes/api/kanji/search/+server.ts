@@ -30,7 +30,7 @@ export const GET: RequestHandler = async ({ url }) => {
 				[kanjiChars]
 			),
 			db.query(
-				`SELECT v.id, v.word, v.readings, v.meanings, v.is_common
+				`SELECT v.id, v.word, v.readings, v.meanings, v.pos_tags, v.is_common
 				 FROM vocab v
 				 WHERE v.word = $1
 				    OR $1 = ANY(v.alt_forms)
@@ -59,7 +59,7 @@ export const GET: RequestHandler = async ({ url }) => {
 				[q]
 			),
 			db.query(
-				`SELECT v.id, v.word, v.readings, v.meanings, v.is_common
+				`SELECT v.id, v.word, v.readings, v.meanings, v.pos_tags, v.is_common
 				 FROM vocab v
 				 WHERE $1 = ANY(v.readings)
 				    OR v.readings::text ILIKE $2
@@ -86,7 +86,7 @@ export const GET: RequestHandler = async ({ url }) => {
 				[`%${q}%`, q]
 			),
 			db.query(
-				`SELECT v.id, v.word, v.readings, v.meanings, v.is_common
+				`SELECT v.id, v.word, v.readings, v.meanings, v.pos_tags, v.is_common
 				 FROM vocab v
 				 WHERE EXISTS (SELECT 1 FROM unnest(v.meanings) m WHERE m ILIKE $1)
 				 ORDER BY

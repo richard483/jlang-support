@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS vocab (
     alt_forms   TEXT[],               -- additional kanji forms
     readings    TEXT[] NOT NULL,      -- hiragana readings, e.g. {せいしゅん}
     meanings    TEXT[] NOT NULL,      -- English glosses
+    pos_tags    TEXT[] NOT NULL DEFAULT '{}',
     is_common   BOOLEAN NOT NULL DEFAULT FALSE
 );
 

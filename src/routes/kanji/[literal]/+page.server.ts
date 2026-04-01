@@ -99,7 +99,7 @@ export const load: PageServerLoad = async ({ params, locals, cookies, fetch }) =
 		db.query('SELECT * FROM kanji WHERE literal = $1', [literal]),
 		db.query('SELECT radical FROM kanji_radicals WHERE kanji_literal = $1', [literal]),
 		db.query(
-			`SELECT v.word, v.readings, v.meanings, v.is_common
+			`SELECT v.word, v.readings, v.meanings, v.is_common, v.pos_tags
 			 FROM vocab v
 			 JOIN vocab_kanji vk ON vk.vocab_id = v.id
 			 WHERE vk.kanji_char = $1
@@ -187,6 +187,7 @@ export const load: PageServerLoad = async ({ params, locals, cookies, fetch }) =
 			word: string;
 			readings: string[];
 			meanings: string[];
+			pos_tags: string[];
 			is_common: boolean;
 		}[]
 	};

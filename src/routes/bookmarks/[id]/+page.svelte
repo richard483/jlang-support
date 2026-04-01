@@ -12,7 +12,11 @@
 		summary: string;
 	};
 
-	type CardLayout = 'character-front' | 'meaning-front' | 'reading-front';
+	type CardLayout =
+		| 'character-front'
+		| 'character-reading-front'
+		| 'meaning-front'
+		| 'reading-front';
 
 	const layoutOptions = [
 		{
@@ -20,6 +24,12 @@
 			kicker: '漢',
 			label: 'Character First',
 			description: 'Show the kanji or word on the front, then reveal meaning and reading.'
+		},
+		{
+			value: 'character-reading-front',
+			kicker: '漢+かな',
+			label: 'Character + Reading',
+			description: 'Show the written form and reading together on the front, then reveal meaning.'
 		},
 		{
 			value: 'meaning-front',
@@ -167,7 +177,7 @@
 				</p>
 			</div>
 
-			<div class="mt-6 grid grid-cols-1 gap-3 lg:grid-cols-3">
+			<div class="mt-6 grid grid-cols-1 gap-3 lg:grid-cols-2 xl:grid-cols-4">
 				{#each layoutOptions as option}
 					<button
 						type="button"
