@@ -6,8 +6,8 @@
  *   2. Decompress: gunzip -k JMdict_e.gz → data/JMdict_e
  *   3. DATABASE_URL=postgres://... npx tsx scripts/import-jmdict.ts
  *
- * Only entries with at least one kanji form (k_ele) are imported.
- * Pure-kana entries (~120k) are skipped.
+ * Entries with at least one kanji form (k_ele) are imported.
+ * Pure-kana entries are imported only if they have common priority tags (ichi1, news1, spec1, gai1).
  */
 
 import { XMLParser } from 'fast-xml-parser';
@@ -77,13 +77,21 @@ function parseJMdict(xml: string, entityMap: Map<string, string>): VocabEntry[] 
 
 	for (const entry of result?.JMdict?.entry ?? []) {
 		const kEles: { keb: string; ke_pri?: string[] }[] = entry.k_ele ?? [];
-		if (kEles.length === 0) continue; // skip pure-kana entries
+		const rEles: { reb: string; re_pri?: string[] }[] = entry.r_ele ?? [];
+
+		let word: string;
+		let altForms: string[];
+
+		if (kEles.length > 0) {
+			word = String(kEles[0].keb);
+			altForms = kEles.slice(1).map((k) => String(k.keb));
+		} else {
+			if (rEles.length === 0) continue;
+			word = String(rEles[0].reb);
+			altForms = rEles.slice(1).map((r) => String(r.reb));
+		}
 
 		const id = Number(entry.ent_seq);
-		const word = String(kEles[0].keb);
-		const altForms = kEles.slice(1).map((k) => String(k.keb));
-
-		const rEles: { reb: string; re_pri?: string[] }[] = entry.r_ele ?? [];
 		const readings = rEles.map((r) => String(r.reb));
 
 		// Collect all English glosses across all senses
@@ -128,7 +136,9 @@ function parseJMdict(xml: string, entityMap: Map<string, string>): VocabEntry[] 
 		// Extract unique kanji characters from word + alt forms
 		const allText = [word, ...altForms].join('');
 		const kanjiChars = [...new Set(allText.match(KANJI_RE) ?? [])];
-		if (kanjiChars.length === 0) continue; // no kanji characters at all
+
+		// For kana-only entries, only keep common ones to avoid importing 120k obscure entries
+		if (kEles.length === 0 && !isCommon) continue;
 
 		entries.push({ id, word, altForms, readings, meanings, posTags, isCommon, kanjiChars });
 	}

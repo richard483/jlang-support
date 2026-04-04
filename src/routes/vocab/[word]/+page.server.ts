@@ -1,9 +1,34 @@
 import { error } from '@sveltejs/kit';
 import db from '$lib/server/db';
 import { getFlashcardErrorMessage, listBoardsWithCards } from '$lib/server/flashcard';
+import { conjugate, type VerbGroup } from '$lib/utils/conjugation';
 import type { PageServerLoad } from './$types';
 
 const KANJI_RE = /[\u4E00-\u9FFF\u3400-\u4DBF\uF900-\uFAFF]/g;
+
+function detectVerbGroup(word: string, readings: string[]): VerbGroup | 'adjective-i' | null {
+	if (word.endsWith('い') && !word.endsWith('る') && word.length > 1) {
+		return 'adjective-i';
+	}
+
+	if (word === 'する' || word.endsWith('する')) return 'suru';
+	if (word === 'くる' || word === '来る') return 'kuru';
+
+	if (word.endsWith('る') && word.length > 1) {
+		const reading = readings[0] ?? '';
+		if (reading.endsWith('る') && reading.length > 1) {
+			const beforeRu = reading.slice(-2, -1);
+			const ichiRowKana = 'いきしちにひみりぎじびぴえけせてねへめれげぜべぺ';
+			if (ichiRowKana.includes(beforeRu)) return 'ichidan';
+			return 'godan';
+		}
+	}
+
+	const verbEndings = 'うくすつぬぶむぐ';
+	if (word.length > 1 && verbEndings.includes(word.slice(-1))) return 'godan';
+
+	return null;
+}
 
 export const load: PageServerLoad = async ({ params, locals, cookies, fetch }) => {
 	const word = params.word;
@@ -59,6 +84,26 @@ export const load: PageServerLoad = async ({ params, locals, cookies, fetch }) =
 	const kanjiMap = new Map(kanjiResult.rows.map((r) => [r.literal, r]));
 	const kanjiList = kanjiChars.map((c) => kanjiMap.get(c)).filter(Boolean);
 
+	// Detect verb/adjective and generate conjugation
+	const verbGroup = detectVerbGroup(vocab.word, vocab.readings);
+	let conjugation: ReturnType<typeof conjugate> | null = null;
+	let adjForms: { label: string; form: string }[] | null = null;
+
+	if (verbGroup && verbGroup !== 'adjective-i') {
+		conjugation = conjugate(vocab.word, verbGroup);
+	} else if (verbGroup === 'adjective-i') {
+		const stem = vocab.word.slice(0, -1);
+		adjForms = [
+			{ label: 'Plain', form: vocab.word },
+			{ label: 'Negative', form: `${stem}くない` },
+			{ label: 'Past', form: `${stem}かった` },
+			{ label: 'Past negative', form: `${stem}くなかった` },
+			{ label: 'Te-form', form: `${stem}くて` },
+			{ label: 'Adverbial', form: `${stem}く` },
+			{ label: 'Nominalized', form: `${stem}さ` }
+		];
+	}
+
 	let boards:
 		| {
 				id: string;
@@ -86,5 +131,5 @@ export const load: PageServerLoad = async ({ params, locals, cookies, fetch }) =
 		});
 	}
 
-	return { vocab, kanjiList, boards, boardsError, user: locals.user };
+	return { vocab, kanjiList, boards, boardsError, user: locals.user, conjugation, adjForms, verbGroup };
 };

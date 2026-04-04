@@ -14,10 +14,35 @@
 		cardId: string | null;
 	};
 
-	let { vocab, kanjiList, boards: initialBoards, boardsError: initialBoardsError, user } = $derived(data);
+	let { vocab, kanjiList, boards: initialBoards, boardsError: initialBoardsError, user, conjugation, adjForms, verbGroup } = $derived(data);
 	let boards = $state<BoardMembership[]>([]);
 	let boardError = $state('');
 	let boardBusyId = $state('');
+
+	const CONJUGATION_ENGLISH: Record<string, string> = {
+		'Plain Positive':     'I do / will do',
+		'Plain Negative':     "I don't / won't do",
+		'Polite':             'I do / will do (polite)',
+		'Polite Negative':    "I don't / won't do (polite)",
+		'Te-form':            'doing / please do / and then...',
+		'Provisional (ば)':   'if (I) do...',
+		'Conditional':        'if / when (I) do...',
+		'Conditional Neg.':   "if (I) don't do...",
+		'Potential':          'can do / able to do',
+		'Volitional':         "let's do / I'll do",
+		'Passive':            'is done / was done',
+		'Causative':          'make/let (someone) do',
+	};
+
+	const ADJ_ENGLISH: Record<string, string> = {
+		'Plain':          'is (adjective)',
+		'Negative':       'is not (adjective)',
+		'Past':           'was (adjective)',
+		'Past negative':  'was not (adjective)',
+		'Te-form':        'being (adj.) and...',
+		'Adverbial':      'in a (adj.) way',
+		'Nominalized':    'the degree of (adj.)',
+	};
 	let creatingBoard = $state(false);
 	let boardServiceError = $state('');
 
@@ -328,6 +353,164 @@
 
 					</div>
 				{/each}
+			</div>
+		</section>
+	{/if}
+
+	<!-- ── Conjugation Matrix ───────────────────────────────────────────────────── -->
+	{#if conjugation || adjForms}
+		<section class="space-y-6">
+			<div class="flex items-center gap-4 border-b border-outline-variant/30 pb-4">
+				<h2 class="font-headline text-3xl font-bold text-secondary">Conjugation Matrix</h2>
+				<span class="text-xs font-label px-2 py-0.5 border border-primary text-primary tracking-widest uppercase">Comprehensive</span>
+			</div>
+
+			<div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+				{#if adjForms}
+					<div class="space-y-4">
+						<h3 class="font-headline text-lg text-primary flex items-center gap-2">
+							<span class="material-symbols-outlined text-xl">auto_stories</span>
+							Adjective &amp; Functional Forms
+							<span class="ml-2 font-headline text-sm font-normal text-on-surface-variant">— {vocab.word}</span>
+						</h3>
+						<div class="overflow-hidden rounded-xl bg-surface-container-lowest border border-outline-variant/20">
+							<table class="w-full text-left border-collapse">
+								<thead>
+									<tr class="bg-surface-container-low border-b border-outline-variant/20">
+										<th class="p-4 font-label text-xs uppercase tracking-widest text-outline">Form</th>
+										<th class="p-4 font-headline text-sm font-bold text-on-surface">Japanese</th>
+									</tr>
+								</thead>
+								<tbody class="divide-y divide-outline-variant/10">
+									{#each adjForms as f}
+										<tr class="hover:bg-surface-container-low/50 transition-colors">
+											<td class="p-4 text-xs font-label text-secondary uppercase tracking-tight">
+												{f.label}
+												<span class="block text-[10px] font-label text-outline mt-0.5 normal-case">{ADJ_ENGLISH[f.label] ?? ''}</span>
+											</td>
+											<td class="p-4 font-headline text-xl text-on-surface">{f.form}</td>
+										</tr>
+									{/each}
+								</tbody>
+							</table>
+						</div>
+					</div>
+				{/if}
+
+				{#if conjugation}
+					{@const c = conjugation}
+					<div class="space-y-4">
+						<h3 class="font-headline text-lg text-primary flex items-center gap-2">
+							<span class="material-symbols-outlined text-xl">history_edu</span>
+							Verb &amp; Tense Logic
+							<span class="ml-2 font-headline text-sm font-normal text-on-surface-variant">— {vocab.word}</span>
+						</h3>
+						<div class="overflow-hidden rounded-xl bg-surface-container-lowest border border-outline-variant/20">
+							<table class="w-full text-left border-collapse">
+								<thead>
+									<tr class="bg-surface-container-low border-b border-outline-variant/20">
+										<th class="p-4 font-label text-xs uppercase tracking-widest text-outline">State</th>
+										<th class="p-4 font-headline text-sm font-bold text-on-surface">Present</th>
+										<th class="p-4 font-headline text-sm font-bold text-on-surface">Past</th>
+									</tr>
+								</thead>
+								<tbody class="divide-y divide-outline-variant/10">
+									<tr class="hover:bg-surface-container-low/50 transition-colors">
+										<td class="p-4 text-xs font-label text-secondary uppercase tracking-tight">
+											Plain Positive
+											<span class="block text-[10px] font-label text-outline mt-0.5 normal-case">{CONJUGATION_ENGLISH['Plain Positive']}</span>
+										</td>
+										<td class="p-4 font-headline text-lg">{c.dictionaryForm}</td>
+										<td class="p-4 font-headline text-lg">{c.forms.ta}</td>
+									</tr>
+									<tr class="hover:bg-surface-container-low/50 transition-colors">
+										<td class="p-4 text-xs font-label text-secondary uppercase tracking-tight">
+											Plain Negative
+											<span class="block text-[10px] font-label text-outline mt-0.5 normal-case">{CONJUGATION_ENGLISH['Plain Negative']}</span>
+										</td>
+										<td class="p-4 font-headline text-lg text-primary">{c.forms.nai}</td>
+										<td class="p-4 font-headline text-lg text-primary">{c.forms.nakatta}</td>
+									</tr>
+									<tr class="hover:bg-surface-container-low/50 transition-colors">
+										<td class="p-4 text-xs font-label text-secondary uppercase tracking-tight">
+											Polite
+											<span class="block text-[10px] font-label text-outline mt-0.5 normal-case">{CONJUGATION_ENGLISH['Polite']}</span>
+										</td>
+										<td class="p-4 font-headline text-lg">{c.forms.masu}</td>
+										<td class="p-4 font-headline text-lg">{c.forms.masuPast}</td>
+									</tr>
+									<tr class="hover:bg-surface-container-low/50 transition-colors">
+										<td class="p-4 text-xs font-label text-secondary uppercase tracking-tight">
+											Polite Negative
+											<span class="block text-[10px] font-label text-outline mt-0.5 normal-case">{CONJUGATION_ENGLISH['Polite Negative']}</span>
+										</td>
+										<td class="p-4 font-headline text-lg text-primary">{c.forms.masuNeg}</td>
+										<td class="p-4 font-headline text-lg text-primary">{c.forms.masuPastNeg}</td>
+									</tr>
+									<tr class="hover:bg-surface-container-low/50 transition-colors">
+										<td class="p-4 text-xs font-label text-secondary uppercase tracking-tight">
+											Te-form
+											<span class="block text-[10px] font-label text-outline mt-0.5 normal-case">{CONJUGATION_ENGLISH['Te-form']}</span>
+										</td>
+										<td class="p-4 font-headline text-lg" colspan="2">{c.forms.te}</td>
+									</tr>
+									<tr class="hover:bg-surface-container-low/50 transition-colors">
+										<td class="p-4 text-xs font-label text-secondary uppercase tracking-tight">
+											Provisional (ば)
+											<span class="block text-[10px] font-label text-outline mt-0.5 normal-case">{CONJUGATION_ENGLISH['Provisional (ば)']}</span>
+										</td>
+										<td class="p-4 font-headline text-lg italic">{c.forms.ba}</td>
+										<td class="p-4 font-headline text-lg text-outline">—</td>
+									</tr>
+									<tr class="hover:bg-surface-container-low/50 transition-colors">
+										<td class="p-4 text-xs font-label text-secondary uppercase tracking-tight">
+											Conditional
+											<span class="block text-[10px] font-label text-outline mt-0.5 normal-case">{CONJUGATION_ENGLISH['Conditional']}</span>
+										</td>
+										<td class="p-4 font-headline text-lg">{c.forms.nara}</td>
+										<td class="p-4 font-headline text-lg">{c.forms.tara}</td>
+									</tr>
+									<tr class="hover:bg-surface-container-low/50 transition-colors">
+										<td class="p-4 text-xs font-label text-secondary uppercase tracking-tight">
+											Conditional Neg.
+											<span class="block text-[10px] font-label text-outline mt-0.5 normal-case">{CONJUGATION_ENGLISH['Conditional Neg.']}</span>
+										</td>
+										<td class="p-4 font-headline text-lg text-primary">{c.forms.nai}なら</td>
+										<td class="p-4 font-headline text-lg text-primary">{c.forms.nakatta}ら</td>
+									</tr>
+									<tr class="hover:bg-surface-container-low/50 transition-colors">
+										<td class="p-4 text-xs font-label text-secondary uppercase tracking-tight">
+											Potential
+											<span class="block text-[10px] font-label text-outline mt-0.5 normal-case">{CONJUGATION_ENGLISH['Potential']}</span>
+										</td>
+										<td class="p-4 font-headline text-lg" colspan="2">{c.forms.potential}</td>
+									</tr>
+									<tr class="hover:bg-surface-container-low/50 transition-colors">
+										<td class="p-4 text-xs font-label text-secondary uppercase tracking-tight">
+											Volitional
+											<span class="block text-[10px] font-label text-outline mt-0.5 normal-case">{CONJUGATION_ENGLISH['Volitional']}</span>
+										</td>
+										<td class="p-4 font-headline text-lg" colspan="2">{c.forms.volitional}</td>
+									</tr>
+									<tr class="hover:bg-surface-container-low/50 transition-colors">
+										<td class="p-4 text-xs font-label text-secondary uppercase tracking-tight">
+											Passive
+											<span class="block text-[10px] font-label text-outline mt-0.5 normal-case">{CONJUGATION_ENGLISH['Passive']}</span>
+										</td>
+										<td class="p-4 font-headline text-lg" colspan="2">{c.forms.passive}</td>
+									</tr>
+									<tr class="hover:bg-surface-container-low/50 transition-colors">
+										<td class="p-4 text-xs font-label text-secondary uppercase tracking-tight">
+											Causative
+											<span class="block text-[10px] font-label text-outline mt-0.5 normal-case">{CONJUGATION_ENGLISH['Causative']}</span>
+										</td>
+										<td class="p-4 font-headline text-lg" colspan="2">{c.forms.causative}</td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+					</div>
+				{/if}
 			</div>
 		</section>
 	{/if}

@@ -8,6 +8,7 @@
 
 	const publicNavLinks = [
 		{ href: '/browse', label: 'Browse' },
+		{ href: '/radicals', label: 'Radicals' },
 		{ href: '/conjugate', label: 'Conjugate' }
 	];
 

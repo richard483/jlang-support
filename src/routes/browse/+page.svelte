@@ -74,8 +74,11 @@
 					>G{n}</a>
 				{/each}
 			</div>
+			<a href="/radicals" class="text-xs font-label font-bold uppercase tracking-widest text-primary hover:underline">
+				Search by radical →
+			</a>
 			{#if hasFilters}
-				<a href="/browse" class="text-xs font-label text-outline hover:text-error ml-auto transition-colors">Clear filters</a>
+				<a href="/browse" class="text-xs font-label text-outline hover:text-error transition-colors">Clear filters</a>
 			{/if}
 		</div>
 

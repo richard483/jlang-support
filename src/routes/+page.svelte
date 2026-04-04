@@ -23,6 +23,8 @@
 		meanings: string[];
 		pos_tags: string[];
 		is_common: boolean;
+		deconjugated_from?: string;
+		conjugation_type?: string;
 	}[]>([]);
 	let loading = $state(false);
 	let searched = $state(false);
@@ -116,6 +118,11 @@
 							{/if}
 						</div>
 						<p class="text-sm text-on-surface-variant font-body">{v.readings.join('、')}</p>
+						{#if v.deconjugated_from}
+							<p class="text-xs font-label text-secondary mt-1">
+								← {v.conjugation_type} of {v.deconjugated_from}
+							</p>
+						{/if}
 						<p class="text-sm text-on-surface mt-1 font-body line-clamp-2">{v.meanings.slice(0, 3).join('; ')}</p>
 						{#if v.pos_tags.length > 0}
 							<div class="mt-2 flex flex-wrap gap-1.5">

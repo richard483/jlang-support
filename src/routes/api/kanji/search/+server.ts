@@ -1,5 +1,6 @@
 import { json } from '@sveltejs/kit';
 import db from '$lib/server/db';
+import { deconjugate } from '$lib/utils/deconjugate';
 import type { RequestHandler } from './$types';
 
 const KANJI_RE = /[\u4E00-\u9FFF\u3400-\u4DBF\uF900-\uFAFF]/g;
@@ -61,10 +62,13 @@ export const GET: RequestHandler = async ({ url }) => {
 			db.query(
 				`SELECT v.id, v.word, v.readings, v.meanings, v.pos_tags, v.is_common
 				 FROM vocab v
-				 WHERE $1 = ANY(v.readings)
+				 WHERE v.word = $1
+				    OR $1 = ANY(v.readings)
 				    OR v.readings::text ILIKE $2
 				 ORDER BY
-				    CASE WHEN $1 = ANY(v.readings) THEN 0 ELSE 1 END,
+				    CASE WHEN v.word = $1 THEN 0
+				         WHEN $1 = ANY(v.readings) THEN 1
+				         ELSE 2 END,
 				    v.is_common DESC,
 				    LENGTH(v.word) ASC
 				 LIMIT 40`,
@@ -99,5 +103,37 @@ export const GET: RequestHandler = async ({ url }) => {
 		]);
 	}
 
-	return json({ results: kanjiRes.rows, vocab: vocabRes.rows });
+	let deconjugatedFrom: string | null = null;
+
+	if (vocabRes.rows.length === 0 || !vocabRes.rows.some((v: any) => v.word === q)) {
+		const candidates = deconjugate(q);
+		if (candidates.length > 0) {
+			const dictForms = candidates.map((c) => c.dictionaryForm);
+			const deconjVocab = await db.query(
+				`SELECT v.id, v.word, v.readings, v.meanings, v.pos_tags, v.is_common
+				 FROM vocab v
+				 WHERE v.word = ANY($1) OR EXISTS (
+					SELECT 1 FROM unnest(v.alt_forms) af WHERE af = ANY($1)
+				 )
+				 ORDER BY v.is_common DESC, LENGTH(v.word) ASC
+				 LIMIT 20`,
+				[dictForms]
+			);
+
+			if (deconjVocab.rows.length > 0) {
+				const existingIds = new Set(vocabRes.rows.map((v: any) => v.id));
+				const newResults = deconjVocab.rows
+					.filter((v: any) => !existingIds.has(v.id))
+					.map((v: any) => ({
+						...v,
+						deconjugated_from: q,
+						conjugation_type: candidates.find((c) => c.dictionaryForm === v.word)?.conjugationType ?? null
+					}));
+				vocabRes.rows = [...newResults, ...vocabRes.rows];
+				deconjugatedFrom = q;
+			}
+		}
+	}
+
+	return json({ results: kanjiRes.rows, vocab: vocabRes.rows, deconjugated_from: deconjugatedFrom });
 };
