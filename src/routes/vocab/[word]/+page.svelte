@@ -205,9 +205,6 @@
 				{#if vocab.is_common}
 					<span class="text-xs font-label font-bold text-secondary tracking-widest uppercase px-3 py-1 bg-secondary-container/20 rounded-full">Common</span>
 				{/if}
-				{#if vocab.alt_forms && vocab.alt_forms.length > 0}
-					<span class="text-xs font-label text-outline px-3 py-1 bg-surface-container-high rounded-full">Also: {vocab.alt_forms.join('、')}</span>
-				{/if}
 				{#each getDisplayPosTags(vocab.pos_tags, 4) as tag}
 					<span class="text-xs font-label font-bold uppercase tracking-widest text-primary px-3 py-1 bg-primary/10 rounded-full">
 						{tag}
@@ -231,6 +228,30 @@
 					{/each}
 				</div>
 			</div>
+
+			<!-- Also written as -->
+			{#if vocab.alt_forms && vocab.alt_forms.length > 0}
+				<div class="space-y-1">
+					<span class="text-[10px] font-label font-bold uppercase tracking-widest text-outline block">Also written as</span>
+					<div class="flex flex-wrap gap-2">
+						{#each vocab.alt_forms as alt}
+							{@const isKanjiForm = /[\u4E00-\u9FFF\u3400-\u4DBF\uF900-\uFAFF]/.test(alt)}
+							<a
+								href={/^[\u4E00-\u9FFF\u3400-\u4DBF\uF900-\uFAFF]$/.test(alt)
+									? `/kanji/${encodeURIComponent(alt)}`
+									: `/vocab/${encodeURIComponent(alt)}`}
+								class="inline-flex items-center gap-1 font-headline text-lg px-3 py-1 rounded-full transition-colors
+									{isKanjiForm
+										? 'text-primary bg-primary/10 hover:bg-primary hover:text-on-primary'
+										: 'text-secondary bg-secondary-container/20 hover:bg-secondary hover:text-on-secondary'}"
+							>
+								{alt}
+								<span class="material-symbols-outlined text-sm">arrow_forward</span>
+							</a>
+						{/each}
+					</div>
+				</div>
+			{/if}
 		</div>
 
 		<!-- Meanings -->
