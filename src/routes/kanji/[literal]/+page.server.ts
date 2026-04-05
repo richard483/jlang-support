@@ -12,9 +12,12 @@ const GODAN_OKURI = new Set(['う', 'く', 'ぐ', 'す', 'つ', 'ぬ', 'ぶ', '�
 interface WordForm {
 	word: string;
 	reading: string;
+	altReadings: string[];
 	type: 'verb-ichidan' | 'verb-godan' | 'adjective-i';
 	conjugation: ConjugationResult | null;
 	adjForms: { label: string; form: string }[] | null;
+	meanings: string[];
+	posTag: string | null;
 }
 
 function deriveForms(literal: string, kunReadings: string[]): WordForm[] {
@@ -34,6 +37,7 @@ function deriveForms(literal: string, kunReadings: string[]): WordForm[] {
 			forms.push({
 				word: fullWord,
 				reading: fullReading,
+				altReadings: [],
 				type: 'adjective-i',
 				conjugation: null,
 				adjForms: [
@@ -44,31 +48,42 @@ function deriveForms(literal: string, kunReadings: string[]): WordForm[] {
 					{ label: 'Te-form', form: `${stem}くて` },
 					{ label: 'Adverbial', form: `${stem}く` },
 					{ label: 'Nominalized', form: `${stem}さ` }
-				]
+				],
+				meanings: [],
+				posTag: null
 			});
 		} else if (okurigana === 'る') {
 			forms.push({
 				word: fullWord,
 				reading: fullReading,
+				altReadings: [],
 				type: 'verb-godan',
 				conjugation: conjugate(fullWord, 'godan'),
-				adjForms: null
+				adjForms: null,
+				meanings: [],
+				posTag: null
 			});
 		} else if (okurigana.endsWith('る') && okurigana.length > 1) {
 			forms.push({
 				word: fullWord,
 				reading: fullReading,
+				altReadings: [],
 				type: 'verb-ichidan',
 				conjugation: conjugate(fullWord, 'ichidan'),
-				adjForms: null
+				adjForms: null,
+				meanings: [],
+				posTag: null
 			});
 		} else if (GODAN_OKURI.has(okurigana.slice(-1)) && okurigana.slice(-1) !== 'い') {
 			forms.push({
 				word: fullWord,
 				reading: fullReading,
+				altReadings: [],
 				type: 'verb-godan',
 				conjugation: conjugate(fullWord, 'godan'),
-				adjForms: null
+				adjForms: null,
+				meanings: [],
+				posTag: null
 			});
 		}
 	}
@@ -143,7 +158,43 @@ export const load: PageServerLoad = async ({ params, locals, cookies, fetch }) =
 		svg_file: string | null;
 	};
 
-	const wordForms = deriveForms(kanji.literal, kanji.kun_readings);
+	const rawWordForms = deriveForms(kanji.literal, kanji.kun_readings);
+
+	const deduped = new Map<string, WordForm>();
+	for (const form of rawWordForms) {
+		const key = form.word;
+		const existing = deduped.get(key);
+		if (existing) {
+			if (existing.reading !== form.reading) {
+				existing.altReadings.push(form.reading);
+			}
+		} else {
+			deduped.set(key, { ...form });
+		}
+	}
+	const uniqueWordForms = [...deduped.values()];
+
+	const vocabRows = vocabResult.rows as {
+		word: string;
+		readings: string[];
+		meanings: string[];
+		pos_tags: string[];
+		is_common: boolean;
+	}[];
+
+	const enrichedWordForms = uniqueWordForms.map((form) => {
+		const matchByReading = vocabRows.find(
+			(v) => v.word === form.word && v.readings.includes(form.reading)
+		);
+		const matchByWord = vocabRows.find((v) => v.word === form.word);
+		const match = matchByReading ?? matchByWord;
+		return {
+			...form,
+			meanings: match?.meanings?.slice(0, 3) ?? [],
+			posTag: match?.pos_tags?.[0] ?? null
+		};
+	});
+
 	let boards:
 		| {
 				id: string;
@@ -182,13 +233,7 @@ export const load: PageServerLoad = async ({ params, locals, cookies, fetch }) =
 		}[],
 		boards,
 		boardsError,
-		wordForms,
-		vocab: vocabResult.rows as {
-			word: string;
-			readings: string[];
-			meanings: string[];
-			pos_tags: string[];
-			is_common: boolean;
-		}[]
+		wordForms: enrichedWordForms,
+		vocab: vocabRows
 	};
 };
