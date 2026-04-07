@@ -147,3 +147,80 @@ export function formatReading(raw: string): { kana: string; romaji: string } {
 	const kana = raw.replace(/\./g, '');
 	return { kana, romaji: kanaToRomaji(kana) };
 }
+
+/**
+ * Convert Hepburn romaji to hiragana.
+ * Handles double consonants (っ), long vowels, n before consonants (ん), etc.
+ * e.g. "atta" → "あった", "taberu" → "たべる", "shiranai" → "しらない"
+ */
+export function romajiToHiragana(input: string): string {
+	const lc = input.toLowerCase();
+	let result = '';
+	let i = 0;
+
+	const MAP: [string, string][] = [
+		['xtsu', 'っ'],
+		['sha', 'しゃ'], ['shi', 'し'], ['shu', 'しゅ'], ['sho', 'しょ'],
+		['chi', 'ち'], ['cha', 'ちゃ'], ['chu', 'ちゅ'], ['cho', 'ちょ'],
+		['tsu', 'つ'],
+		['nya', 'にゃ'], ['nyu', 'にゅ'], ['nyo', 'にょ'],
+		['hya', 'ひゃ'], ['hyu', 'ひゅ'], ['hyo', 'ひょ'],
+		['mya', 'みゃ'], ['myu', 'みゅ'], ['myo', 'みょ'],
+		['rya', 'りゃ'], ['ryu', 'りゅ'], ['ryo', 'りょ'],
+		['gya', 'ぎゃ'], ['gyu', 'ぎゅ'], ['gyo', 'ぎょ'],
+		['bya', 'びゃ'], ['byu', 'びゅ'], ['byo', 'びょ'],
+		['pya', 'ぴゃ'], ['pyu', 'ぴゅ'], ['pyo', 'ぴょ'],
+		['kya', 'きゃ'], ['kyu', 'きゅ'], ['kyo', 'きょ'],
+		['jya', 'じゃ'], ['jyu', 'じゅ'], ['jyo', 'じょ'],
+		['ja', 'じゃ'], ['ju', 'じゅ'], ['jo', 'じょ'],
+		['ka', 'か'], ['ki', 'き'], ['ku', 'く'], ['ke', 'け'], ['ko', 'こ'],
+		['sa', 'さ'], ['si', 'し'], ['su', 'す'], ['se', 'せ'], ['so', 'そ'],
+		['ta', 'た'], ['ti', 'ち'], ['tu', 'つ'], ['te', 'て'], ['to', 'と'],
+		['na', 'な'], ['ni', 'に'], ['nu', 'ぬ'], ['ne', 'ね'], ['no', 'の'],
+		['ha', 'は'], ['hi', 'ひ'], ['hu', 'ふ'], ['fu', 'ふ'], ['he', 'へ'], ['ho', 'ほ'],
+		['ma', 'ま'], ['mi', 'み'], ['mu', 'む'], ['me', 'め'], ['mo', 'も'],
+		['ya', 'や'], ['yu', 'ゆ'], ['yo', 'よ'],
+		['ra', 'ら'], ['ri', 'り'], ['ru', 'る'], ['re', 'れ'], ['ro', 'ろ'],
+		['wa', 'わ'], ['wi', 'ゐ'], ['we', 'ゑ'], ['wo', 'を'],
+		['ga', 'が'], ['gi', 'ぎ'], ['gu', 'ぐ'], ['ge', 'げ'], ['go', 'ご'],
+		['za', 'ざ'], ['ji', 'じ'], ['zu', 'ず'], ['ze', 'ぜ'], ['zo', 'ぞ'],
+		['da', 'だ'], ['di', 'ぢ'], ['du', 'づ'], ['de', 'で'], ['do', 'ど'],
+		['ba', 'ば'], ['bi', 'び'], ['bu', 'ぶ'], ['be', 'べ'], ['bo', 'ぼ'],
+		['pa', 'ぱ'], ['pi', 'ぴ'], ['pu', 'ぷ'], ['pe', 'ぺ'], ['po', 'ぽ'],
+		['a', 'あ'], ['i', 'い'], ['u', 'う'], ['e', 'え'], ['o', 'お'],
+	];
+
+	while (i < lc.length) {
+		if (i + 1 < lc.length && lc[i] === lc[i + 1] && 'bcdfghjklmnpqrstvwxyz'.includes(lc[i]) && lc[i] !== 'n') {
+			result += 'っ';
+			i++;
+			continue;
+		}
+
+		if (lc[i] === 'n') {
+			const next = lc[i + 1];
+			if (!next || (!'aiueoy'.includes(next) && next !== 'n')) {
+				result += 'ん';
+				i++;
+				continue;
+			}
+		}
+
+		let matched = false;
+		for (const [rom, kana] of MAP) {
+			if (lc.startsWith(rom, i)) {
+				result += kana;
+				i += rom.length;
+				matched = true;
+				break;
+			}
+		}
+
+		if (!matched) {
+			result += lc[i];
+			i++;
+		}
+	}
+
+	return result;
+}

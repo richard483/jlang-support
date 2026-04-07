@@ -2,6 +2,7 @@
 	import type { PageData } from './$types';
 	import { goto } from '$app/navigation';
 	import { kanaToRomaji, katakanaToHiragana } from '$lib/utils/kana';
+	import { getDisplayPosTags } from '$lib/utils/posTags';
 
 	const KANJI_RE = /^[\u4E00-\u9FFF\u3400-\u4DBF\uF900-\uFAFF]$/;
 
@@ -20,7 +21,10 @@
 		word: string;
 		readings: string[];
 		meanings: string[];
+		pos_tags: string[];
 		is_common: boolean;
+		deconjugated_from?: string;
+		conjugation_type?: string;
 	}[]>([]);
 	let loading = $state(false);
 	let searched = $state(false);
@@ -114,7 +118,19 @@
 							{/if}
 						</div>
 						<p class="text-sm text-on-surface-variant font-body">{v.readings.join('、')}</p>
+						{#if v.deconjugated_from}
+							<p class="text-xs font-label text-secondary mt-1">
+								← {v.conjugation_type} of {v.deconjugated_from}
+							</p>
+						{/if}
 						<p class="text-sm text-on-surface mt-1 font-body line-clamp-2">{v.meanings.slice(0, 3).join('; ')}</p>
+						{#if v.pos_tags.length > 0}
+							<div class="mt-2 flex flex-wrap gap-1.5">
+								{#each getDisplayPosTags(v.pos_tags, 2) as tag}
+									<span class="text-[10px] font-label uppercase tracking-[0.2em] text-outline">{tag}</span>
+								{/each}
+							</div>
+						{/if}
 					</a>
 				{/each}
 			</div>
