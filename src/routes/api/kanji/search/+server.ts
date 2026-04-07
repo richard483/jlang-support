@@ -7,6 +7,7 @@ import type { RequestHandler } from './$types';
 const KANJI_RE = /[\u4E00-\u9FFF\u3400-\u4DBF\uF900-\uFAFF]/g;
 const KANA_RE = /^[\u3040-\u30FF\uFF65-\uFF9F]+$/;
 const ROMAJI_RE = /^[a-zA-Z]+$/;
+const KANJI_COUNT_ORDER_SQL = "(SELECT COUNT(*) FROM regexp_matches(v.word, '[一-鿿㐀-䶿豈-﫿]', 'g'))";
 
 export const GET: RequestHandler = async ({ url }) => {
 	const q = url.searchParams.get('q')?.trim();
@@ -53,6 +54,7 @@ export const GET: RequestHandler = async ({ url }) => {
 				         WHEN $1 = ANY(v.alt_forms) THEN 1
 				         ELSE 2 END,
 				    v.is_common DESC,
+				    ${KANJI_COUNT_ORDER_SQL} ASC,
 				    LENGTH(v.word) ASC
 				 LIMIT 40`,
 				[q, `%${q}%`]
@@ -80,6 +82,7 @@ export const GET: RequestHandler = async ({ url }) => {
 				         WHEN $1 = ANY(v.readings) THEN 1
 				         ELSE 2 END,
 				    v.is_common DESC,
+				    ${KANJI_COUNT_ORDER_SQL} ASC,
 				    LENGTH(v.word) ASC
 				 LIMIT 40`,
 				[effectiveQuery, `%${effectiveQuery}%`]
@@ -103,6 +106,7 @@ export const GET: RequestHandler = async ({ url }) => {
 				 WHERE EXISTS (SELECT 1 FROM unnest(v.meanings) m WHERE m ILIKE $1)
 				 ORDER BY
 				    CASE WHEN EXISTS (SELECT 1 FROM unnest(v.meanings) m WHERE m ILIKE $2) THEN 0 ELSE 1 END,
+				    (SELECT min(length(m)) FROM unnest(v.meanings) m WHERE m ILIKE $1) ASC NULLS LAST,
 				    v.is_common DESC,
 				    LENGTH(v.word) ASC
 				 LIMIT 40`,

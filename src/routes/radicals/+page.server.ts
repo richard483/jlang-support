@@ -36,7 +36,11 @@ export const load: PageServerLoad = async ({ url }) => {
 				        k.jlpt_level, k.grade, k.stroke_count
 				 FROM kanji k
 				 WHERE k.literal IN (${matchingKanjiSubquery})
-				 ORDER BY k.frequency ASC NULLS LAST, k.literal
+				 ORDER BY
+				    (SELECT COUNT(*) FROM kanji_radicals kr2 WHERE kr2.kanji_literal = k.literal) ASC,
+				    k.stroke_count ASC NULLS LAST,
+				    k.frequency ASC NULLS LAST,
+				    k.literal ASC
 				 LIMIT $3 OFFSET $4`,
 				[selectedRadicals, selectedRadicals.length, pageSize, offset]
 			),

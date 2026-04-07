@@ -134,14 +134,14 @@
 			{#if totalPages > 1}
 				<div class="flex items-center gap-3 justify-center pt-4">
 					{#if page > 1}
-						<a href={pageUrl(page - 1)}
+						<a href={pageUrl(page - 1)} data-sveltekit-noscroll
 							class="px-4 py-2 text-sm font-label bg-surface-container-low hover:bg-surface-container transition-colors rounded-full">
 							← Prev
 						</a>
 					{/if}
 					<span class="text-sm font-label text-outline">Page {page} of {totalPages}</span>
 					{#if page < totalPages}
-						<a href={pageUrl(page + 1)}
+						<a href={pageUrl(page + 1)} data-sveltekit-noscroll
 							class="px-4 py-2 text-sm font-label bg-surface-container-low hover:bg-surface-container transition-colors rounded-full">
 							Next →
 						</a>

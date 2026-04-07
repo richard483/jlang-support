@@ -118,7 +118,7 @@ export const load: PageServerLoad = async ({ params, locals, cookies, fetch }) =
 			 FROM vocab v
 			 JOIN vocab_kanji vk ON vk.vocab_id = v.id
 			 WHERE vk.kanji_char = $1
-			 ORDER BY v.is_common DESC, LENGTH(v.word) ASC
+			 ORDER BY LENGTH(v.word) ASC, POSITION($1 IN v.word) ASC, v.is_common DESC
 			 LIMIT 30`,
 			[literal]
 		),
