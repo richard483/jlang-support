@@ -55,7 +55,8 @@ const inFlight = new Set<string>();
 interface KanjiAliveResponse {
 	kanji?: {
 		character?: string;
-		strokes?: number;
+		// KanjiAlive returns strokes as an object { count, timings, images }
+		strokes?: { count?: number };
 		video?: { poster?: string; mp4?: string; webm?: string };
 	};
 	radical?: unknown;
@@ -149,7 +150,7 @@ export async function enrichKanji(literal: string): Promise<void> {
 			vals.push(value);
 		};
 
-		const aliveStrokes = alive?.kanji?.strokes ?? null;
+		const aliveStrokes = alive?.kanji?.strokes?.count ?? null;
 		const apiStrokes = api?.stroke_count ?? null;
 		// kanjiapi.dev has full coverage; KanjiAlive corroborates when present.
 		const authStrokes = apiStrokes ?? aliveStrokes;
