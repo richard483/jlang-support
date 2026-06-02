@@ -29,20 +29,12 @@ CREATE TABLE IF NOT EXISTS kanji_radicals (
 -- User-authored mnemonics/etymology notes
 CREATE TABLE IF NOT EXISTS kanji_mnemonics (
     id SERIAL PRIMARY KEY,
+    user_id UUID NOT NULL,
     kanji_literal CHAR(1) REFERENCES kanji(literal) ON DELETE CASCADE,
     mnemonic TEXT NOT NULL,
     etymology TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Bookmarked kanji (single-user for now, no auth)
-CREATE TABLE IF NOT EXISTS bookmarks (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    kanji_literal CHAR(1) REFERENCES kanji(literal) ON DELETE CASCADE,
-    notes TEXT,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE(kanji_literal)
 );
 
 -- Vocabulary / compound words (from JMdict)
@@ -52,6 +44,7 @@ CREATE TABLE IF NOT EXISTS vocab (
     alt_forms   TEXT[],               -- additional kanji forms
     readings    TEXT[] NOT NULL,      -- hiragana readings, e.g. {せいしゅん}
     meanings    TEXT[] NOT NULL,      -- English glosses
+    pos_tags    TEXT[] NOT NULL DEFAULT '{}',
     is_common   BOOLEAN NOT NULL DEFAULT FALSE
 );
 
@@ -70,4 +63,5 @@ CREATE INDEX IF NOT EXISTS idx_vocab_common     ON vocab(is_common) WHERE is_com
 CREATE INDEX IF NOT EXISTS idx_kanji_jlpt ON kanji(jlpt_level);
 CREATE INDEX IF NOT EXISTS idx_kanji_grade ON kanji(grade);
 CREATE INDEX IF NOT EXISTS idx_kanji_frequency ON kanji(frequency);
-CREATE INDEX IF NOT EXISTS idx_bookmarks_created ON bookmarks(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_kanji_mnemonics_user_id ON kanji_mnemonics(user_id);
+CREATE INDEX IF NOT EXISTS idx_kanji_mnemonics_user_literal ON kanji_mnemonics(user_id, kanji_literal);

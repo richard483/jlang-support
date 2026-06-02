@@ -1,17 +1,33 @@
 <script lang="ts">
+	import SaveToBoard from '$lib/components/SaveToBoard.svelte';
 	import StrokeOrder from '$lib/components/StrokeOrder.svelte';
 	import { formatReading, katakanaToHiragana } from '$lib/utils/kana';
+	import { getDisplayPosTags } from '$lib/utils/posTags';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
-	let { kanji, radicals, mnemonics: initialMnemonics, bookmarked: initialBookmarked, wordForms, vocab } = $derived(data);
+	type BoardMembership = {
+		id: string;
+		name: string;
+		card_count: number;
+		isSaved: boolean;
+		cardId: string | null;
+	};
 
-	let bookmarked = $state(false);
+	let { kanji, radicals, mnemonics: initialMnemonics, boards: initialBoards, boardsError: initialBoardsError, wordForms, vocab, user } = $derived(data);
 	let mnemonics = $state<typeof initialMnemonics>([]);
+	let boards = $state<BoardMembership[]>([]);
+	let boardError = $state('');
+	let boardBusyId = $state('');
+	let creatingBoard = $state(false);
+	let boardServiceError = $state('');
+	const isAuthenticated = $derived(Boolean(user));
 
 	$effect(() => {
-		bookmarked = initialBookmarked;
 		mnemonics = [...initialMnemonics];
+		boards = [...(initialBoards ?? [])];
+		boardServiceError = initialBoardsError ?? '';
+		boardError = '';
 	});
 
 	let showMnemonicForm = $state(false);
@@ -20,6 +36,7 @@
 	let submitting = $state(false);
 
 	const tanoshiiUrl = $derived(`https://www.tanoshiijapanese.com/dictionary/?j=${encodeURIComponent(kanji.literal)}`);
+	const loginRedirect = $derived(`/login?redirectTo=${encodeURIComponent(`/kanji/${kanji.literal}`)}`);
 
 	// Derive the hero heading from word forms or fall back to readings
 	const heroTitle = $derived(() => {
@@ -27,21 +44,155 @@
 		return wordForms.slice(0, 2).map((wf) => wf.word).join(' / ');
 	});
 
-	// Separate adjective and verb forms for the two-table conjugation matrix
-	const adjForm = $derived(wordForms.find((wf) => wf.type === 'adjective-i') ?? null);
-	const verbForm = $derived(wordForms.find((wf) => wf.type === 'verb-ichidan' || wf.type === 'verb-godan') ?? null);
+	// Separate adjective and verb forms for the conjugation matrix
+	const adjForms = $derived(wordForms.filter((wf) => wf.type === 'adjective-i'));
+	const verbForms = $derived(wordForms.filter((wf) => wf.type === 'verb-ichidan' || wf.type === 'verb-godan'));
 
-	async function toggleBookmark() {
-		if (bookmarked) {
-			await fetch(`/api/bookmarks/${encodeURIComponent(kanji.literal)}`, { method: 'DELETE' });
-			bookmarked = false;
-		} else {
-			await fetch('/api/bookmarks', {
+	const CONJUGATION_ENGLISH: Record<string, string> = {
+		'Plain Positive':     'I do / will do',
+		'Plain Negative':     "I don't / won't do",
+		'Polite':             'I do / will do (polite)',
+		'Polite Negative':    "I don't / won't do (polite)",
+		'Te-form':            'doing / please do / and then...',
+		'Provisional (ば)':   'if (I) do...',
+		'Conditional':        'if / when (I) do...',
+		'Conditional Neg.':   "if (I) don't do...",
+		'Potential':          'can do / able to do',
+		'Volitional':         "let's do / I'll do",
+		'Passive':            'is done / was done',
+		'Causative':          'make/let (someone) do',
+	};
+
+	const ADJ_ENGLISH: Record<string, string> = {
+		'Plain':          'is (adjective)',
+		'Negative':       'is not (adjective)',
+		'Past':           'was (adjective)',
+		'Past negative':  'was not (adjective)',
+		'Te-form':        'being (adj.) and...',
+		'Adverbial':      'in a (adj.) way',
+		'Nominalized':    'the degree of (adj.)',
+	};
+
+	async function addToBoard(boardId: string) {
+		boardError = '';
+		boardBusyId = boardId;
+
+		try {
+			const response = await fetch(`/api/boards/${encodeURIComponent(boardId)}/kanji`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ literal: kanji.literal })
 			});
-			bookmarked = true;
+			const payload = (await response.json().catch(() => ({}))) as {
+				message?: string;
+				card_id?: string;
+				already_exists?: boolean;
+			};
+
+			if (!response.ok) {
+				throw new Error(payload.message || 'Failed to update board.');
+			}
+
+			boards = boards.map((current) =>
+				current.id !== boardId
+					? current
+					: {
+							...current,
+							isSaved: true,
+							cardId: payload.card_id ?? current.cardId,
+							card_count: current.card_count + (payload.already_exists ? 0 : 1)
+						}
+			);
+		} catch (error) {
+			boardError = error instanceof Error ? error.message : 'Failed to update board.';
+		} finally {
+			boardBusyId = '';
+		}
+	}
+
+	async function removeFromBoard(boardId: string, cardId?: string) {
+		if (!cardId) {
+			boardError = 'Card not found.';
+			return;
+		}
+
+		boardError = '';
+		boardBusyId = boardId;
+
+		try {
+			const response = await fetch(`/api/boards/${encodeURIComponent(boardId)}/kanji`, {
+				method: 'DELETE',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ card_id: cardId, literal: kanji.literal })
+			});
+			const payload = (await response.json().catch(() => ({}))) as { message?: string };
+			if (!response.ok) {
+				throw new Error(payload.message || 'Failed to remove kanji from board.');
+			}
+
+			boards = boards.map((current) =>
+				current.id !== boardId
+					? current
+					: {
+							...current,
+							isSaved: false,
+							cardId: null,
+							card_count: Math.max(0, current.card_count - 1)
+						}
+			);
+		} catch (error) {
+			boardError = error instanceof Error ? error.message : 'Failed to remove kanji from board.';
+		} finally {
+			boardBusyId = '';
+		}
+	}
+
+	async function createBoardAndSave(name: string) {
+		creatingBoard = true;
+		boardError = '';
+
+		try {
+			const createResponse = await fetch('/api/boards', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ name })
+			});
+			const createPayload = (await createResponse.json().catch(() => ({}))) as {
+				message?: string;
+				deck_id?: string;
+			};
+			if (!createResponse.ok || !createPayload.deck_id) {
+				throw new Error(createPayload.message || 'Failed to create board.');
+			}
+
+			const addResponse = await fetch(`/api/boards/${encodeURIComponent(createPayload.deck_id)}/kanji`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ literal: kanji.literal })
+			});
+			const addPayload = (await addResponse.json().catch(() => ({}))) as {
+				message?: string;
+				card_id?: string;
+			};
+			if (!addResponse.ok) {
+				throw new Error(addPayload.message || 'Failed to save kanji to the new board.');
+			}
+
+			boards = [
+				{
+					id: createPayload.deck_id,
+					name,
+					card_count: 1,
+					isSaved: true,
+					cardId: addPayload.card_id ?? null
+				},
+				...boards
+			];
+		} catch (error) {
+			boardError = error instanceof Error ? error.message : 'Failed to create board.';
+			throw error;
+		} finally {
+			creatingBoard = false;
 		}
 	}
 
@@ -81,9 +232,25 @@
 <div class="space-y-20 py-4">
 
 	<!-- ── 1. Hero ────────────────────────────────────────────────────────────── -->
-	<section class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-end">
+	<section class="relative grid grid-cols-1 gap-8 items-end lg:grid-cols-12">
+		<div class="absolute top-0 right-0 z-10">
+			<SaveToBoard
+				boards={boards}
+				user={user}
+				itemType="kanji"
+				itemId={kanji.literal}
+				serviceError={boardServiceError}
+				actionError={boardError}
+				busyBoardId={boardBusyId}
+				creatingBoard={creatingBoard}
+				onAdd={async ({ boardId }) => addToBoard(boardId)}
+				onRemove={async ({ boardId, cardId }) => removeFromBoard(boardId, cardId)}
+				onCreate={async ({ name }) => createBoardAndSave(name)}
+			/>
+		</div>
+
 		<!-- Left: meta -->
-		<div class="lg:col-span-5 space-y-5">
+		<div class="space-y-5 pt-14 sm:pt-0 lg:col-span-5">
 			<div class="flex items-center gap-3 flex-wrap">
 				{#if kanji.jlpt_level}
 					<span class="text-xs font-label font-bold text-secondary tracking-widest uppercase px-3 py-1 bg-secondary-container/20 rounded-full">JLPT N{kanji.jlpt_level}</span>
@@ -94,15 +261,14 @@
 				{#if kanji.frequency}
 					<span class="text-xs font-label text-outline px-3 py-1 bg-surface-container-high rounded-full">Freq #{kanji.frequency}</span>
 				{/if}
-				<button
-					onclick={toggleBookmark}
-					class="ml-auto flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-label font-medium transition-colors
-						{bookmarked ? 'bg-primary/10 text-primary' : 'bg-surface-container-high text-outline hover:text-on-surface'}"
-				>
-					<span class="material-symbols-outlined text-base leading-none">{bookmarked ? 'bookmark' : 'bookmark_border'}</span>
-					{bookmarked ? 'Saved' : 'Save'}
-				</button>
 			</div>
+
+			{#if isAuthenticated && boardServiceError}
+				<div class="rounded-[1.25rem] bg-surface-container-low p-4 text-sm leading-7 text-on-surface-variant">
+					<p class="font-label text-xs font-bold uppercase tracking-[0.24em] text-secondary">Board sync unavailable</p>
+					<p class="mt-2">{boardServiceError}</p>
+				</div>
+			{/if}
 
 			<h1 class="font-headline text-4xl md:text-5xl font-bold text-primary tracking-tighter leading-tight">
 				{heroTitle()}
@@ -166,9 +332,9 @@
 					<div class="flex gap-2 flex-wrap">
 						{#each radicals as r}
 							<a
-								href="/kanji/{encodeURIComponent(r)}"
+								href="/radicals?radical={encodeURIComponent(r)}"
 								class="font-headline text-2xl px-3 py-1.5 bg-surface-container-low hover:bg-surface-container transition-colors rounded-lg text-on-surface"
-								title="View {r}"
+								title="Browse kanji with {r}"
 							>{r}</a>
 						{/each}
 					</div>
@@ -212,122 +378,182 @@
 	{/if}
 
 	<!-- ── 3. Conjugation Matrix ──────────────────────────────────────────────── -->
-	{#if adjForm || verbForm}
+	{#if adjForms.length > 0 || verbForms.length > 0}
 		<section class="space-y-6">
 			<div class="flex items-center gap-4 border-b border-outline-variant/30 pb-4">
 				<h2 class="font-headline text-3xl font-bold text-secondary">Conjugation Matrix</h2>
+				{#if adjForms.length + verbForms.length > 1}
+					<span class="text-xs font-label px-2 py-0.5 border border-primary text-primary tracking-widest uppercase">
+						{adjForms.length + verbForms.length} Forms
+					</span>
+				{/if}
 				<span class="text-xs font-label px-2 py-0.5 border border-primary text-primary tracking-widest uppercase">Comprehensive</span>
 			</div>
 
-			<div class="grid grid-cols-1 md:grid-cols-2 gap-10">
-				<!-- Adjective & Functional Forms -->
-				{#if adjForm && adjForm.adjForms}
-					<div class="space-y-4">
-						<h3 class="font-headline text-lg text-primary flex items-center gap-2">
-							<span class="material-symbols-outlined text-xl">auto_stories</span>
-							Adjective &amp; Functional Forms
-							<span class="ml-2 font-headline text-sm font-normal text-on-surface-variant">— {adjForm.word}</span>
-						</h3>
-						<div class="overflow-hidden rounded-xl bg-surface-container-lowest border border-outline-variant/20">
-							<table class="w-full text-left border-collapse">
-								<thead>
-									<tr class="bg-surface-container-low border-b border-outline-variant/20">
-										<th class="p-4 font-label text-xs uppercase tracking-widest text-outline">Form</th>
-										<th class="p-4 font-headline text-sm font-bold text-on-surface">Japanese</th>
-									</tr>
-								</thead>
-								<tbody class="divide-y divide-outline-variant/10">
-									{#each adjForm.adjForms as f}
-										<tr class="hover:bg-surface-container-low/50 transition-colors">
-											<td class="p-4 text-xs font-label text-secondary uppercase tracking-tight">{f.label}</td>
-											<td class="p-4 font-headline text-xl text-on-surface">{f.form}</td>
+			<div class="space-y-10">
+				{#each adjForms as form}
+					{#if form.adjForms}
+						<div class="space-y-4">
+							<h3 class="font-headline text-lg text-primary flex items-center gap-2">
+								<span class="material-symbols-outlined text-xl">auto_stories</span>
+								{form.word}
+								<span class="ml-1 font-headline text-sm font-normal text-on-surface-variant">
+									({form.reading}{form.altReadings.length > 0 ? ' / ' + form.altReadings.join(' / ') : ''})
+								</span>
+								{#if form.meanings.length > 0}
+									<span class="ml-2 font-headline text-sm font-normal text-on-surface-variant italic">
+										— {form.meanings.slice(0, 2).join('; ')}
+									</span>
+								{/if}
+							</h3>
+							<div class="overflow-hidden rounded-xl bg-surface-container-lowest border border-outline-variant/20">
+								<table class="w-full text-left border-collapse">
+									<thead>
+										<tr class="bg-surface-container-low border-b border-outline-variant/20">
+											<th class="p-4 font-label text-xs uppercase tracking-widest text-outline">Form</th>
+											<th class="p-4 font-headline text-sm font-bold text-on-surface">Japanese</th>
 										</tr>
-									{/each}
-								</tbody>
-							</table>
+									</thead>
+									<tbody class="divide-y divide-outline-variant/10">
+										{#each form.adjForms as f}
+											<tr class="hover:bg-surface-container-low/50 transition-colors">
+												<td class="p-4 text-xs font-label text-secondary uppercase tracking-tight">
+													{f.label}
+													<span class="block text-[10px] font-label text-outline mt-0.5 normal-case">{ADJ_ENGLISH[f.label] ?? ''}</span>
+												</td>
+												<td class="p-4 font-headline text-xl text-on-surface">{f.form}</td>
+											</tr>
+										{/each}
+									</tbody>
+								</table>
+							</div>
 						</div>
-					</div>
-				{/if}
+					{/if}
+				{/each}
 
-				<!-- Verb & Tense Logic -->
-				{#if verbForm && verbForm.conjugation}
-					{@const c = verbForm.conjugation}
-					<div class="space-y-4">
-						<h3 class="font-headline text-lg text-primary flex items-center gap-2">
-							<span class="material-symbols-outlined text-xl">history_edu</span>
-							Verb &amp; Tense Logic
-							<span class="ml-2 font-headline text-sm font-normal text-on-surface-variant">— {verbForm.word}</span>
-						</h3>
-						<div class="overflow-hidden rounded-xl bg-surface-container-lowest border border-outline-variant/20">
-							<table class="w-full text-left border-collapse">
-								<thead>
-									<tr class="bg-surface-container-low border-b border-outline-variant/20">
-										<th class="p-4 font-label text-xs uppercase tracking-widest text-outline">State</th>
-										<th class="p-4 font-headline text-sm font-bold text-on-surface">Present</th>
-										<th class="p-4 font-headline text-sm font-bold text-on-surface">Past</th>
-									</tr>
-								</thead>
-								<tbody class="divide-y divide-outline-variant/10">
-									<tr class="hover:bg-surface-container-low/50 transition-colors">
-										<td class="p-4 text-xs font-label text-secondary uppercase">Plain Positive</td>
-										<td class="p-4 font-headline text-lg">{c.dictionaryForm}</td>
-										<td class="p-4 font-headline text-lg">{c.forms.ta}</td>
-									</tr>
-									<tr class="hover:bg-surface-container-low/50 transition-colors">
-										<td class="p-4 text-xs font-label text-secondary uppercase">Plain Negative</td>
-										<td class="p-4 font-headline text-lg text-primary">{c.forms.nai}</td>
-										<td class="p-4 font-headline text-lg text-primary">{c.forms.nakatta}</td>
-									</tr>
-									<tr class="hover:bg-surface-container-low/50 transition-colors">
-										<td class="p-4 text-xs font-label text-secondary uppercase">Polite</td>
-										<td class="p-4 font-headline text-lg">{c.forms.masu}</td>
-										<td class="p-4 font-headline text-lg">{c.forms.masuPast}</td>
-									</tr>
-									<tr class="hover:bg-surface-container-low/50 transition-colors">
-										<td class="p-4 text-xs font-label text-secondary uppercase">Polite Negative</td>
-										<td class="p-4 font-headline text-lg text-primary">{c.forms.masuNeg}</td>
-										<td class="p-4 font-headline text-lg text-primary">{c.forms.masuPastNeg}</td>
-									</tr>
-									<tr class="hover:bg-surface-container-low/50 transition-colors">
-										<td class="p-4 text-xs font-label text-secondary uppercase">Te-form</td>
-										<td class="p-4 font-headline text-lg" colspan="2">{c.forms.te}</td>
-									</tr>
-									<tr class="hover:bg-surface-container-low/50 transition-colors">
-										<td class="p-4 text-xs font-label text-secondary uppercase">Provisional (ば)</td>
-										<td class="p-4 font-headline text-lg italic">{c.forms.ba}</td>
-										<td class="p-4 font-headline text-lg text-outline">—</td>
-									</tr>
-									<tr class="hover:bg-surface-container-low/50 transition-colors">
-										<td class="p-4 text-xs font-label text-secondary uppercase">Conditional</td>
-										<td class="p-4 font-headline text-lg">{c.forms.nara}</td>
-										<td class="p-4 font-headline text-lg">{c.forms.tara}</td>
-									</tr>
-									<tr class="hover:bg-surface-container-low/50 transition-colors">
-										<td class="p-4 text-xs font-label text-secondary uppercase">Conditional Neg.</td>
-										<td class="p-4 font-headline text-lg text-primary">{c.forms.nai}なら</td>
-										<td class="p-4 font-headline text-lg text-primary">{c.forms.nakatta}ら</td>
-									</tr>
-									<tr class="hover:bg-surface-container-low/50 transition-colors">
-										<td class="p-4 text-xs font-label text-secondary uppercase">Potential</td>
-										<td class="p-4 font-headline text-lg" colspan="2">{c.forms.potential}</td>
-									</tr>
-									<tr class="hover:bg-surface-container-low/50 transition-colors">
-										<td class="p-4 text-xs font-label text-secondary uppercase">Volitional</td>
-										<td class="p-4 font-headline text-lg" colspan="2">{c.forms.volitional}</td>
-									</tr>
-									<tr class="hover:bg-surface-container-low/50 transition-colors">
-										<td class="p-4 text-xs font-label text-secondary uppercase">Passive</td>
-										<td class="p-4 font-headline text-lg" colspan="2">{c.forms.passive}</td>
-									</tr>
-									<tr class="hover:bg-surface-container-low/50 transition-colors">
-										<td class="p-4 text-xs font-label text-secondary uppercase">Causative</td>
-										<td class="p-4 font-headline text-lg" colspan="2">{c.forms.causative}</td>
-									</tr>
-								</tbody>
-							</table>
+				{#each verbForms as form}
+					{#if form.conjugation}
+						{@const c = form.conjugation}
+						<div class="space-y-4">
+							<h3 class="font-headline text-lg text-primary flex items-center gap-2">
+								<span class="material-symbols-outlined text-xl">history_edu</span>
+								{form.word}
+								<span class="ml-1 font-headline text-sm font-normal text-on-surface-variant">
+									({form.reading}{form.altReadings.length > 0 ? ' / ' + form.altReadings.join(' / ') : ''})
+								</span>
+								{#if form.meanings.length > 0}
+									<span class="ml-2 font-headline text-sm font-normal text-on-surface-variant italic">
+										— {form.meanings.slice(0, 2).join('; ')}
+									</span>
+								{/if}
+							</h3>
+							<div class="overflow-hidden rounded-xl bg-surface-container-lowest border border-outline-variant/20">
+								<table class="w-full text-left border-collapse">
+									<thead>
+										<tr class="bg-surface-container-low border-b border-outline-variant/20">
+											<th class="p-4 font-label text-xs uppercase tracking-widest text-outline">State</th>
+											<th class="p-4 font-headline text-sm font-bold text-on-surface">Present</th>
+											<th class="p-4 font-headline text-sm font-bold text-on-surface">Past</th>
+										</tr>
+									</thead>
+									<tbody class="divide-y divide-outline-variant/10">
+										<tr class="hover:bg-surface-container-low/50 transition-colors">
+											<td class="p-4 text-xs font-label text-secondary uppercase tracking-tight">
+												Plain Positive
+												<span class="block text-[10px] font-label text-outline mt-0.5 normal-case">{CONJUGATION_ENGLISH['Plain Positive']}</span>
+											</td>
+											<td class="p-4 font-headline text-lg">{c.dictionaryForm}</td>
+											<td class="p-4 font-headline text-lg">{c.forms.ta}</td>
+										</tr>
+										<tr class="hover:bg-surface-container-low/50 transition-colors">
+											<td class="p-4 text-xs font-label text-secondary uppercase tracking-tight">
+												Plain Negative
+												<span class="block text-[10px] font-label text-outline mt-0.5 normal-case">{CONJUGATION_ENGLISH['Plain Negative']}</span>
+											</td>
+											<td class="p-4 font-headline text-lg text-primary">{c.forms.nai}</td>
+											<td class="p-4 font-headline text-lg text-primary">{c.forms.nakatta}</td>
+										</tr>
+										<tr class="hover:bg-surface-container-low/50 transition-colors">
+											<td class="p-4 text-xs font-label text-secondary uppercase tracking-tight">
+												Polite
+												<span class="block text-[10px] font-label text-outline mt-0.5 normal-case">{CONJUGATION_ENGLISH['Polite']}</span>
+											</td>
+											<td class="p-4 font-headline text-lg">{c.forms.masu}</td>
+											<td class="p-4 font-headline text-lg">{c.forms.masuPast}</td>
+										</tr>
+										<tr class="hover:bg-surface-container-low/50 transition-colors">
+											<td class="p-4 text-xs font-label text-secondary uppercase tracking-tight">
+												Polite Negative
+												<span class="block text-[10px] font-label text-outline mt-0.5 normal-case">{CONJUGATION_ENGLISH['Polite Negative']}</span>
+											</td>
+											<td class="p-4 font-headline text-lg text-primary">{c.forms.masuNeg}</td>
+											<td class="p-4 font-headline text-lg text-primary">{c.forms.masuPastNeg}</td>
+										</tr>
+										<tr class="hover:bg-surface-container-low/50 transition-colors">
+											<td class="p-4 text-xs font-label text-secondary uppercase tracking-tight">
+												Te-form
+												<span class="block text-[10px] font-label text-outline mt-0.5 normal-case">{CONJUGATION_ENGLISH['Te-form']}</span>
+											</td>
+											<td class="p-4 font-headline text-lg" colspan="2">{c.forms.te}</td>
+										</tr>
+										<tr class="hover:bg-surface-container-low/50 transition-colors">
+											<td class="p-4 text-xs font-label text-secondary uppercase tracking-tight">
+												Provisional (ば)
+												<span class="block text-[10px] font-label text-outline mt-0.5 normal-case">{CONJUGATION_ENGLISH['Provisional (ば)']}</span>
+											</td>
+											<td class="p-4 font-headline text-lg italic">{c.forms.ba}</td>
+											<td class="p-4 font-headline text-lg text-outline">—</td>
+										</tr>
+										<tr class="hover:bg-surface-container-low/50 transition-colors">
+											<td class="p-4 text-xs font-label text-secondary uppercase tracking-tight">
+												Conditional
+												<span class="block text-[10px] font-label text-outline mt-0.5 normal-case">{CONJUGATION_ENGLISH['Conditional']}</span>
+											</td>
+											<td class="p-4 font-headline text-lg">{c.forms.nara}</td>
+											<td class="p-4 font-headline text-lg">{c.forms.tara}</td>
+										</tr>
+										<tr class="hover:bg-surface-container-low/50 transition-colors">
+											<td class="p-4 text-xs font-label text-secondary uppercase tracking-tight">
+												Conditional Neg.
+												<span class="block text-[10px] font-label text-outline mt-0.5 normal-case">{CONJUGATION_ENGLISH['Conditional Neg.']}</span>
+											</td>
+											<td class="p-4 font-headline text-lg text-primary">{c.forms.nai}なら</td>
+											<td class="p-4 font-headline text-lg text-primary">{c.forms.nakatta}ら</td>
+										</tr>
+										<tr class="hover:bg-surface-container-low/50 transition-colors">
+											<td class="p-4 text-xs font-label text-secondary uppercase tracking-tight">
+												Potential
+												<span class="block text-[10px] font-label text-outline mt-0.5 normal-case">{CONJUGATION_ENGLISH['Potential']}</span>
+											</td>
+											<td class="p-4 font-headline text-lg" colspan="2">{c.forms.potential}</td>
+										</tr>
+										<tr class="hover:bg-surface-container-low/50 transition-colors">
+											<td class="p-4 text-xs font-label text-secondary uppercase tracking-tight">
+												Volitional
+												<span class="block text-[10px] font-label text-outline mt-0.5 normal-case">{CONJUGATION_ENGLISH['Volitional']}</span>
+											</td>
+											<td class="p-4 font-headline text-lg" colspan="2">{c.forms.volitional}</td>
+										</tr>
+										<tr class="hover:bg-surface-container-low/50 transition-colors">
+											<td class="p-4 text-xs font-label text-secondary uppercase tracking-tight">
+												Passive
+												<span class="block text-[10px] font-label text-outline mt-0.5 normal-case">{CONJUGATION_ENGLISH['Passive']}</span>
+											</td>
+											<td class="p-4 font-headline text-lg" colspan="2">{c.forms.passive}</td>
+										</tr>
+										<tr class="hover:bg-surface-container-low/50 transition-colors">
+											<td class="p-4 text-xs font-label text-secondary uppercase tracking-tight">
+												Causative
+												<span class="block text-[10px] font-label text-outline mt-0.5 normal-case">{CONJUGATION_ENGLISH['Causative']}</span>
+											</td>
+											<td class="p-4 font-headline text-lg" colspan="2">{c.forms.causative}</td>
+										</tr>
+									</tbody>
+								</table>
+							</div>
 						</div>
-					</div>
-				{/if}
+					{/if}
+				{/each}
 			</div>
 		</section>
 	{/if}
@@ -353,6 +579,13 @@
 						</div>
 						<p class="text-sm text-outline font-body mb-1">{v.readings[0]}</p>
 						<p class="text-sm text-on-surface-variant font-body line-clamp-2">{v.meanings[0]}</p>
+						{#if v.pos_tags.length > 0}
+							<div class="mt-2 flex flex-wrap gap-1.5">
+								{#each getDisplayPosTags(v.pos_tags, 2) as tag}
+									<span class="text-[10px] font-label uppercase tracking-[0.2em] text-outline">{tag}</span>
+								{/each}
+							</div>
+						{/if}
 					</a>
 				{/each}
 			</div>
@@ -363,51 +596,68 @@
 	<section class="space-y-5">
 		<div class="flex items-center justify-between border-b border-outline-variant/30 pb-4">
 			<h2 class="font-headline text-3xl font-bold text-secondary">Mnemonics &amp; Etymology</h2>
-			<button
-				onclick={() => (showMnemonicForm = !showMnemonicForm)}
-				class="text-sm font-label text-primary hover:underline"
-			>{showMnemonicForm ? 'Cancel' : '+ Add'}</button>
+			{#if isAuthenticated}
+				<button
+					onclick={() => (showMnemonicForm = !showMnemonicForm)}
+					class="text-sm font-label text-primary hover:underline"
+				>{showMnemonicForm ? 'Cancel' : '+ Add'}</button>
+			{/if}
 		</div>
 
-		{#if showMnemonicForm}
-			<div class="space-y-3 p-6 bg-surface-container-low">
-				<textarea
-					bind:value={newMnemonic}
-					placeholder="How do you remember this kanji?"
-					class="w-full bg-surface-container-high border-none border-b-2 border-outline-variant focus:border-primary focus:ring-0 px-3 py-2 text-sm font-body resize-none h-20 outline-none rounded-none"
-				></textarea>
-				<input
-					bind:value={newEtymology}
-					type="text"
-					placeholder="Etymology hint (optional)"
-					class="w-full bg-surface-container-high border-none border-b-2 border-outline-variant focus:border-primary focus:ring-0 px-3 py-2 text-sm font-body outline-none rounded-none"
-				/>
-				<button
-					onclick={addMnemonic}
-					disabled={submitting || !newMnemonic.trim()}
-					class="px-6 py-2 bg-primary text-on-primary rounded-full text-sm font-label font-semibold hover:opacity-90 disabled:opacity-50 transition-opacity"
-				>{submitting ? 'Saving…' : 'Save'}</button>
+		{#if !isAuthenticated}
+			<div class="rounded-[1.5rem] bg-surface-container-low p-6">
+				<p class="font-headline text-2xl text-on-surface">Save personal notes after login.</p>
+				<p class="mt-2 max-w-2xl text-sm leading-7 text-on-surface-variant">
+					Boards and mnemonics are private to your account now. Sign in to keep study notes tied to your own kanji workflow.
+				</p>
+				<a
+					href={loginRedirect}
+					class="mt-4 inline-flex items-center rounded-full bg-primary px-5 py-3 text-sm font-label font-semibold text-on-primary transition-opacity hover:opacity-90"
+				>
+					Login to add notes
+				</a>
+			</div>
+		{:else}
+			{#if showMnemonicForm}
+				<div class="space-y-3 p-6 bg-surface-container-low">
+					<textarea
+						bind:value={newMnemonic}
+						placeholder="How do you remember this kanji?"
+						class="w-full bg-surface-container-high border-none border-b-2 border-outline-variant focus:border-primary focus:ring-0 px-3 py-2 text-sm font-body resize-none h-20 outline-none rounded-none"
+					></textarea>
+					<input
+						bind:value={newEtymology}
+						type="text"
+						placeholder="Etymology hint (optional)"
+						class="w-full bg-surface-container-high border-none border-b-2 border-outline-variant focus:border-primary focus:ring-0 px-3 py-2 text-sm font-body outline-none rounded-none"
+					/>
+					<button
+						onclick={addMnemonic}
+						disabled={submitting || !newMnemonic.trim()}
+						class="px-6 py-2 bg-primary text-on-primary rounded-full text-sm font-label font-semibold hover:opacity-90 disabled:opacity-50 transition-opacity"
+					>{submitting ? 'Saving…' : 'Save'}</button>
+				</div>
+			{/if}
+
+			{#if mnemonics.length === 0 && !showMnemonicForm}
+				<p class="text-sm text-outline font-body py-4">No mnemonics yet. Add one to help remember this kanji!</p>
+			{/if}
+
+			<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+				{#each mnemonics as m}
+					<div class="p-6 bg-surface-container relative group border-l-2 border-primary/30">
+						<p class="text-on-surface font-body text-sm leading-relaxed">{m.mnemonic}</p>
+						{#if m.etymology}
+							<p class="text-xs text-outline font-body italic mt-2">{m.etymology}</p>
+						{/if}
+						<button
+							onclick={() => deleteMnemonic(m.id)}
+							class="absolute top-4 right-4 text-xs font-label text-error opacity-0 group-hover:opacity-100 transition-opacity hover:underline"
+						>delete</button>
+					</div>
+				{/each}
 			</div>
 		{/if}
-
-		{#if mnemonics.length === 0 && !showMnemonicForm}
-			<p class="text-sm text-outline font-body py-4">No mnemonics yet. Add one to help remember this kanji!</p>
-		{/if}
-
-		<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-			{#each mnemonics as m}
-				<div class="p-6 bg-surface-container relative group border-l-2 border-primary/30">
-					<p class="text-on-surface font-body text-sm leading-relaxed">{m.mnemonic}</p>
-					{#if m.etymology}
-						<p class="text-xs text-outline font-body italic mt-2">{m.etymology}</p>
-					{/if}
-					<button
-						onclick={() => deleteMnemonic(m.id)}
-						class="absolute top-4 right-4 text-xs font-label text-error opacity-0 group-hover:opacity-100 transition-opacity hover:underline"
-					>delete</button>
-				</div>
-			{/each}
-		</div>
 	</section>
 
 </div>

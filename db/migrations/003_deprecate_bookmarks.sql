@@ -1,0 +1,4 @@
+-- The bookmarks table is deprecated.
+-- Board data now lives in rein-flashcard flashcard_decks with source = 'jlang-support'.
+-- Keep the table for rollback safety until the board flow is fully validated in production.
+-- DROP TABLE IF EXISTS bookmarks;
