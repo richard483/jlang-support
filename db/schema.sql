@@ -16,8 +16,17 @@ CREATE TABLE IF NOT EXISTS kanji (
     nanori TEXT[],
     radical_number INT,
     svg_file TEXT,      -- KanjiVG filename, e.g. "04e2c.svg"
-    svg_content TEXT    -- inline SVG XML content (served via /kanjivg/[file])
+    svg_content TEXT,   -- inline SVG XML content (served via /kanjivg/[file])
+    -- Dynamic enrichment (KanjiAlive / kanjiapi.dev), populated lazily on first view
+    kanjialive_checked BOOLEAN NOT NULL DEFAULT FALSE, -- looked up against KanjiAlive yet?
+    additional_data JSONB,        -- examples, references, media, _validation history
+    enriched_at TIMESTAMPTZ
 );
+
+-- Apply the enrichment columns to pre-existing kanji tables (idempotent)
+ALTER TABLE kanji ADD COLUMN IF NOT EXISTS kanjialive_checked BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE kanji ADD COLUMN IF NOT EXISTS additional_data JSONB;
+ALTER TABLE kanji ADD COLUMN IF NOT EXISTS enriched_at TIMESTAMPTZ;
 
 -- Pre-loaded from KRADFILE
 CREATE TABLE IF NOT EXISTS kanji_radicals (
@@ -26,15 +35,12 @@ CREATE TABLE IF NOT EXISTS kanji_radicals (
     PRIMARY KEY (kanji_literal, radical)
 );
 
--- User-authored mnemonics/etymology notes
-CREATE TABLE IF NOT EXISTS kanji_mnemonics (
-    id SERIAL PRIMARY KEY,
-    user_id UUID NOT NULL,
-    kanji_literal CHAR(1) REFERENCES kanji(literal) ON DELETE CASCADE,
-    mnemonic TEXT NOT NULL,
-    etymology TEXT,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+-- Kanji etymology, extracted from the Kanji Networks etymological dictionary.
+-- Read-only reference data (replaces the former user-authored kanji_mnemonics).
+CREATE TABLE IF NOT EXISTS kanji_etymology (
+    kanji_literal CHAR(1) PRIMARY KEY REFERENCES kanji(literal) ON DELETE CASCADE,
+    etymology     TEXT NOT NULL,
+    source        TEXT DEFAULT 'kanjinetworks'
 );
 
 -- Vocabulary / compound words (from JMdict)
@@ -63,5 +69,4 @@ CREATE INDEX IF NOT EXISTS idx_vocab_common     ON vocab(is_common) WHERE is_com
 CREATE INDEX IF NOT EXISTS idx_kanji_jlpt ON kanji(jlpt_level);
 CREATE INDEX IF NOT EXISTS idx_kanji_grade ON kanji(grade);
 CREATE INDEX IF NOT EXISTS idx_kanji_frequency ON kanji(frequency);
-CREATE INDEX IF NOT EXISTS idx_kanji_mnemonics_user_id ON kanji_mnemonics(user_id);
-CREATE INDEX IF NOT EXISTS idx_kanji_mnemonics_user_literal ON kanji_mnemonics(user_id, kanji_literal);
+CREATE INDEX IF NOT EXISTS idx_kanji_alive_checked ON kanji(kanjialive_checked);

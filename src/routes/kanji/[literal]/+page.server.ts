@@ -5,7 +5,14 @@ import {
 	listBoardsWithCards
 } from '$lib/server/flashcard';
 import { conjugate, type ConjugationResult } from '$lib/utils/conjugation';
+import { enrichKanji, type KanjiAdditionalData } from '$lib/server/enrich';
+import { normalizeRadical } from '$lib/utils/radicals';
 import type { PageServerLoad } from './$types';
+
+export interface RadicalLink {
+	display: string; // the radical glyph as decomposed by KRADFILE
+	target: string | null; // kanji detail page to link to, or null if none exists
+}
 
 const GODAN_OKURI = new Set(['う', 'く', 'ぐ', 'す', 'つ', 'ぬ', 'ぶ', 'む']);
 
@@ -95,6 +102,14 @@ export const load: PageServerLoad = async ({ params, locals, cookies, fetch }) =
 	const { literal } = params;
 	if (!literal || [...literal].length !== 1) error(400, 'Invalid kanji');
 
+	// Lazily revalidate & enrich this kanji against external APIs (once ever).
+	// Never let enrichment failures break the page — read existing data regardless.
+	try {
+		await enrichKanji(literal);
+	} catch (e) {
+		console.error(`enrichKanji(${literal}) failed:`, e);
+	}
+
 	const userId = locals.user?.id ?? null;
 	const accessToken = cookies.get('access_token');
 	const boardPromise =
@@ -110,7 +125,7 @@ export const load: PageServerLoad = async ({ params, locals, cookies, fetch }) =
 					boardsError: null as string | null
 				});
 
-	const [kanjiResult, radicalsResult, vocabResult, mnemonicsResult, boardData] = await Promise.all([
+	const [kanjiResult, radicalsResult, vocabResult, etymologyResult, boardData] = await Promise.all([
 		db.query('SELECT * FROM kanji WHERE literal = $1', [literal]),
 		db.query('SELECT radical FROM kanji_radicals WHERE kanji_literal = $1', [literal]),
 		db.query(
@@ -122,23 +137,7 @@ export const load: PageServerLoad = async ({ params, locals, cookies, fetch }) =
 			 LIMIT 30`,
 			[literal]
 		),
-		userId
-			? db.query(
-					`SELECT id, mnemonic, etymology, created_at
-					 FROM kanji_mnemonics
-					 WHERE kanji_literal = $1 AND user_id = $2
-					 ORDER BY created_at DESC`,
-					[literal, userId]
-				)
-			: Promise.resolve({
-					rows: [] as {
-						id: number;
-						mnemonic: string;
-						etymology: string | null;
-						created_at: string;
-					}[]
-				})
-		,
+		db.query('SELECT etymology, source FROM kanji_etymology WHERE kanji_literal = $1', [literal]),
 		boardPromise
 	]);
 
@@ -156,7 +155,24 @@ export const load: PageServerLoad = async ({ params, locals, cookies, fetch }) =
 		nanori: string[];
 		radical_number: number | null;
 		svg_file: string | null;
+		additional_data: KanjiAdditionalData | null;
 	};
+
+	// Resolve radical links: normalize component glyphs to their kanji, then keep
+	// the link only when that kanji actually has a detail page (no dead 404s).
+	const radicalGlyphs = radicalsResult.rows.map((row) => row.radical as string);
+	const radicalTargets = [...new Set(radicalGlyphs.map(normalizeRadical))];
+	const existingRadicalKanji = new Set<string>();
+	if (radicalTargets.length > 0) {
+		const existRes = await db.query('SELECT literal FROM kanji WHERE literal = ANY($1)', [
+			radicalTargets
+		]);
+		for (const row of existRes.rows) existingRadicalKanji.add(row.literal as string);
+	}
+	const radicals: RadicalLink[] = radicalGlyphs.map((g) => {
+		const target = normalizeRadical(g);
+		return { display: g, target: existingRadicalKanji.has(target) ? target : null };
+	});
 
 	const rawWordForms = deriveForms(kanji.literal, kanji.kun_readings);
 
@@ -224,13 +240,8 @@ export const load: PageServerLoad = async ({ params, locals, cookies, fetch }) =
 
 	return {
 		kanji,
-		radicals: radicalsResult.rows.map((row) => row.radical as string),
-		mnemonics: mnemonicsResult.rows as {
-			id: number;
-			mnemonic: string;
-			etymology: string | null;
-			created_at: string;
-		}[],
+		radicals,
+		etymology: (etymologyResult.rows[0]?.etymology as string | undefined) ?? null,
 		boards,
 		boardsError,
 		wordForms: enrichedWordForms,

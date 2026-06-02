@@ -14,8 +14,7 @@
 		cardId: string | null;
 	};
 
-	let { kanji, radicals, mnemonics: initialMnemonics, boards: initialBoards, boardsError: initialBoardsError, wordForms, vocab, user } = $derived(data);
-	let mnemonics = $state<typeof initialMnemonics>([]);
+	let { kanji, radicals, etymology, boards: initialBoards, boardsError: initialBoardsError, wordForms, vocab, user } = $derived(data);
 	let boards = $state<BoardMembership[]>([]);
 	let boardError = $state('');
 	let boardBusyId = $state('');
@@ -24,19 +23,18 @@
 	const isAuthenticated = $derived(Boolean(user));
 
 	$effect(() => {
-		mnemonics = [...initialMnemonics];
 		boards = [...(initialBoards ?? [])];
 		boardServiceError = initialBoardsError ?? '';
 		boardError = '';
 	});
 
-	let showMnemonicForm = $state(false);
-	let newMnemonic = $state('');
-	let newEtymology = $state('');
-	let submitting = $state(false);
-
 	const tanoshiiUrl = $derived(`https://www.tanoshiijapanese.com/dictionary/?j=${encodeURIComponent(kanji.literal)}`);
-	const loginRedirect = $derived(`/login?redirectTo=${encodeURIComponent(`/kanji/${kanji.literal}`)}`);
+
+	// Enrichment payload (KanjiAlive examples/audio/references + validation history)
+	const extra = $derived(kanji.additional_data ?? null);
+	const examples = $derived(extra?.kanjialive?.examples ?? []);
+	const refs = $derived(extra?.kanjialive?.references ?? null);
+	const corrections = $derived((extra?._validation ?? []).filter((v) => v.corrected));
 
 	// Derive the hero heading from word forms or fall back to readings
 	const heroTitle = $derived(() => {
@@ -196,33 +194,6 @@
 		}
 	}
 
-	async function addMnemonic() {
-		if (!newMnemonic.trim()) return;
-		submitting = true;
-		try {
-			const res = await fetch('/api/mnemonics', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					literal: kanji.literal,
-					mnemonic: newMnemonic.trim(),
-					etymology: newEtymology.trim() || null
-				})
-			});
-			const added = await res.json();
-			mnemonics = [{ ...added, mnemonic: newMnemonic.trim(), etymology: newEtymology.trim() || null }, ...mnemonics];
-			newMnemonic = '';
-			newEtymology = '';
-			showMnemonicForm = false;
-		} finally {
-			submitting = false;
-		}
-	}
-
-	async function deleteMnemonic(id: number) {
-		await fetch(`/api/mnemonics?id=${id}`, { method: 'DELETE' });
-		mnemonics = mnemonics.filter((m) => m.id !== id);
-	}
 </script>
 
 <svelte:head>
@@ -260,6 +231,12 @@
 				{/if}
 				{#if kanji.frequency}
 					<span class="text-xs font-label text-outline px-3 py-1 bg-surface-container-high rounded-full">Freq #{kanji.frequency}</span>
+				{/if}
+				{#if refs?.kodansha}
+					<span class="text-xs font-label text-outline px-3 py-1 bg-surface-container-high rounded-full" title="Kodansha Kanji Learner's Dictionary index">Kodansha {refs.kodansha}</span>
+				{/if}
+				{#if refs?.classic_nelson}
+					<span class="text-xs font-label text-outline px-3 py-1 bg-surface-container-high rounded-full" title="Classic Nelson index">Nelson {refs.classic_nelson}</span>
 				{/if}
 			</div>
 
@@ -331,11 +308,18 @@
 					<span class="text-[10px] font-label font-bold uppercase tracking-widest text-outline block">Radicals</span>
 					<div class="flex gap-2 flex-wrap">
 						{#each radicals as r}
-							<a
-								href="/radicals?radical={encodeURIComponent(r)}"
-								class="font-headline text-2xl px-3 py-1.5 bg-surface-container-low hover:bg-surface-container transition-colors rounded-lg text-on-surface"
-								title="Browse kanji with {r}"
-							>{r}</a>
+							{#if r.target}
+								<a
+									href="/kanji/{encodeURIComponent(r.target)}"
+									class="font-headline text-2xl px-3 py-1.5 bg-surface-container-low hover:bg-surface-container transition-colors rounded-lg text-on-surface"
+									title="View {r.target}"
+								>{r.display}</a>
+							{:else}
+								<span
+									class="font-headline text-2xl px-3 py-1.5 bg-surface-container-low rounded-lg text-on-surface-variant"
+									title="Stroke component — no standalone kanji"
+								>{r.display}</span>
+							{/if}
 						{/each}
 					</div>
 				</div>
@@ -346,6 +330,13 @@
 				View on Tanoshii Japanese
 				<span class="material-symbols-outlined text-sm leading-none">open_in_new</span>
 			</a>
+
+			{#if corrections.length > 0}
+				<p class="text-[11px] font-label text-outline italic">
+					Data revalidated against external sources:
+					{corrections.map((c) => `${c.field} ${c.old == null ? '—' : String(c.old)} → ${String(c.new)} (${c.source})`).join('; ')}.
+				</p>
+			{/if}
 		</div>
 
 		<!-- Right: giant kanji art -->
@@ -592,71 +583,45 @@
 		</section>
 	{/if}
 
-	<!-- ── 5. Mnemonics ───────────────────────────────────────────────────────── -->
-	<section class="space-y-5">
-		<div class="flex items-center justify-between border-b border-outline-variant/30 pb-4">
-			<h2 class="font-headline text-3xl font-bold text-secondary">Mnemonics &amp; Etymology</h2>
-			{#if isAuthenticated}
-				<button
-					onclick={() => (showMnemonicForm = !showMnemonicForm)}
-					class="text-sm font-label text-primary hover:underline"
-				>{showMnemonicForm ? 'Cancel' : '+ Add'}</button>
-			{/if}
-		</div>
-
-		{#if !isAuthenticated}
-			<div class="rounded-[1.5rem] bg-surface-container-low p-6">
-				<p class="font-headline text-2xl text-on-surface">Save personal notes after login.</p>
-				<p class="mt-2 max-w-2xl text-sm leading-7 text-on-surface-variant">
-					Boards and mnemonics are private to your account now. Sign in to keep study notes tied to your own kanji workflow.
-				</p>
-				<a
-					href={loginRedirect}
-					class="mt-4 inline-flex items-center rounded-full bg-primary px-5 py-3 text-sm font-label font-semibold text-on-primary transition-opacity hover:opacity-90"
-				>
-					Login to add notes
-				</a>
+	<!-- ── 5. Examples (KanjiAlive) ──────────────────────────────────────────── -->
+	{#if examples.length > 0}
+		<section class="space-y-6">
+			<div class="flex items-center justify-between border-b border-outline-variant/30 pb-4">
+				<h2 class="font-headline text-3xl font-bold text-secondary">Examples</h2>
+				<span class="font-label text-xs uppercase tracking-[0.2em] text-outline">via Kanji alive</span>
 			</div>
-		{:else}
-			{#if showMnemonicForm}
-				<div class="space-y-3 p-6 bg-surface-container-low">
-					<textarea
-						bind:value={newMnemonic}
-						placeholder="How do you remember this kanji?"
-						class="w-full bg-surface-container-high border-none border-b-2 border-outline-variant focus:border-primary focus:ring-0 px-3 py-2 text-sm font-body resize-none h-20 outline-none rounded-none"
-					></textarea>
-					<input
-						bind:value={newEtymology}
-						type="text"
-						placeholder="Etymology hint (optional)"
-						class="w-full bg-surface-container-high border-none border-b-2 border-outline-variant focus:border-primary focus:ring-0 px-3 py-2 text-sm font-body outline-none rounded-none"
-					/>
-					<button
-						onclick={addMnemonic}
-						disabled={submitting || !newMnemonic.trim()}
-						class="px-6 py-2 bg-primary text-on-primary rounded-full text-sm font-label font-semibold hover:opacity-90 disabled:opacity-50 transition-opacity"
-					>{submitting ? 'Saving…' : 'Save'}</button>
-				</div>
-			{/if}
-
-			{#if mnemonics.length === 0 && !showMnemonicForm}
-				<p class="text-sm text-outline font-body py-4">No mnemonics yet. Add one to help remember this kanji!</p>
-			{/if}
-
 			<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-				{#each mnemonics as m}
-					<div class="p-6 bg-surface-container relative group border-l-2 border-primary/30">
-						<p class="text-on-surface font-body text-sm leading-relaxed">{m.mnemonic}</p>
-						{#if m.etymology}
-							<p class="text-xs text-outline font-body italic mt-2">{m.etymology}</p>
+				{#each examples as ex}
+					<div class="p-5 bg-surface-container-lowest border-l-2 border-secondary/30 space-y-2">
+						<p class="font-headline text-xl text-on-surface leading-snug">{ex.japanese}</p>
+						<p class="text-sm text-on-surface-variant font-body">{ex.meaning}</p>
+						{#if ex.audio?.mp3}
+							<audio controls preload="none" class="w-full h-9 mt-1">
+								<source src={ex.audio.mp3} type="audio/mpeg" />
+								{#if ex.audio.ogg}<source src={ex.audio.ogg} type="audio/ogg" />{/if}
+							</audio>
 						{/if}
-						<button
-							onclick={() => deleteMnemonic(m.id)}
-							class="absolute top-4 right-4 text-xs font-label text-error opacity-0 group-hover:opacity-100 transition-opacity hover:underline"
-						>delete</button>
 					</div>
 				{/each}
 			</div>
+		</section>
+	{/if}
+
+	<!-- ── 6. Etymology (Kanji Networks) ─────────────────────────────────────── -->
+	<section class="space-y-5">
+		<div class="flex items-center justify-between border-b border-outline-variant/30 pb-4">
+			<h2 class="font-headline text-3xl font-bold text-secondary">Etymology</h2>
+			{#if etymology}
+				<a href="/references" class="font-label text-xs uppercase tracking-[0.2em] text-outline hover:text-primary transition-colors">via Kanji Networks</a>
+			{/if}
+		</div>
+
+		{#if etymology}
+			<div class="p-6 bg-surface-container border-l-2 border-primary/30">
+				<p class="text-on-surface font-body text-sm leading-relaxed whitespace-pre-line">{etymology}</p>
+			</div>
+		{:else}
+			<p class="text-sm text-outline font-body py-4">No etymology available for this kanji yet.</p>
 		{/if}
 	</section>
 

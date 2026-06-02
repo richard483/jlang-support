@@ -7,7 +7,7 @@ const skipPaths = new Set(['/favicon.ico', '/robots.txt']);
 const publicPages = [/^\/$/, /^\/login$/, /^\/reset-password$/, /^\/browse$/, /^\/kanji\/[^/]+$/, /^\/vocab\/[^/]+$/, /^\/conjugate$/];
 const protectedPages = [/^\/bookmarks(?:\/[^/]+)?\/?$/];
 const publicApiPrefixes = ['/api/kanji'];
-const protectedApiPrefixes = ['/api/boards', '/api/mnemonics'];
+const protectedApiPrefixes = ['/api/boards'];
 
 function matchesPrefix(pathname: string, prefix: string) {
 	return pathname === prefix || pathname.startsWith(`${prefix}/`);

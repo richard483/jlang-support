@@ -216,18 +216,18 @@
 					<div class="mb-6 flex justify-center">
 						<span class="font-headline text-9xl text-primary drop-shadow-sm select-none leading-none">{k.literal}</span>
 					</div>
-					<!-- Reading: on-yomi first, fall back to first kun-yomi -->
-					{#if k.on_readings.length > 0 || k.kun_readings.length > 0}
+					<!-- Reading: kun-yomi first, fall back to on-yomi -->
+					{#if k.kun_readings.length > 0 || k.on_readings.length > 0}
 						<div class="mb-3">
 							<p class="font-headline text-2xl font-bold text-on-surface tracking-tight">
-								{k.on_readings.length > 0
-									? k.on_readings.map(r => katakanaToHiragana(r)).join(' / ')
-									: k.kun_readings.slice(0, 2).map(r => r.replace(/\./g, '')).join(' / ')}
+								{k.kun_readings.length > 0
+									? k.kun_readings.slice(0, 2).map(r => r.replace(/\./g, '')).join(' / ')
+									: k.on_readings.map(r => katakanaToHiragana(r)).join(' / ')}
 							</p>
 							<p class="font-label text-sm text-outline mt-0.5 tracking-wide">
-								{k.on_readings.length > 0
-									? k.on_readings.map(r => kanaToRomaji(r)).join(' / ')
-									: k.kun_readings.slice(0, 2).map(r => kanaToRomaji(r)).join(' / ')}
+								{k.kun_readings.length > 0
+									? k.kun_readings.slice(0, 2).map(r => kanaToRomaji(r.replace(/\./g, ''))).join(' / ')
+									: k.on_readings.map(r => kanaToRomaji(r)).join(' / ')}
 							</p>
 						</div>
 					{/if}

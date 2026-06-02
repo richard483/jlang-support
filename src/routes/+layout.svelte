@@ -9,7 +9,8 @@
 	const publicNavLinks = [
 		{ href: '/browse', label: 'Browse' },
 		{ href: '/radicals', label: 'Radicals' },
-		{ href: '/conjugate', label: 'Conjugate' }
+		{ href: '/conjugate', label: 'Conjugate' },
+		{ href: '/references', label: 'References' }
 	];
 
 	let loggingOut = $state(false);
