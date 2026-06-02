@@ -65,11 +65,11 @@ npm run import:kradfile
 npm run import:kanjivg
 ```
 
-**Kanji Networks etymology** (optional, read-only etymology section):
+**Kanji Networks etymology** (read-only etymology section, ~6.6k kanji):
 ```bash
-# Place the Etymological Dictionary of Han/Chinese Characters PDF in data/
-#   (from https://github.com/acoomans/kanjinetworks/tree/master/kanjinetworks/data)
-npm run extract:etymology   # PDF → data/kanjinetworks.json (heuristic — spot-check output!)
+# Pulls the structured Kanji Networks "notes" (Lawrence J. Howell) from the
+# acoomans/kanjinetworks repo — no PDF tooling needed.
+npm run extract:etymology   # download + parse → data/kanjinetworks.json
 npm run import:etymology    # data/kanjinetworks.json → kanji_etymology
 ```
 

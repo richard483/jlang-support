@@ -1,116 +1,97 @@
 /**
- * Extracts per-kanji etymology from the Kanji Networks "Etymological Dictionary
- * of Han/Chinese Characters" PDF into data/kanjinetworks.json.
+ * Extracts per-kanji etymology from the Kanji Networks data into
+ * data/kanjinetworks.json — a flat map of { "<kanji>": "<etymology text>" }
+ * consumed by scripts/import-kanjinetworks.ts.
  *
- * Source PDF (place under data/):
- *   https://github.com/acoomans/kanjinetworks/tree/master/kanjinetworks/data
- *   → etymologicaldictionaryofhanchinesecharacters-*.pdf
+ * Source: the gzipped JSON "notes" exports in the acoomans/kanjinetworks repo
+ * (https://github.com/acoomans/kanjinetworks/tree/master/kanjinetworks/data),
+ * which are the same Kanji Networks etymology (Lawrence J. Howell) served at
+ * rtega.be/chmn. Each note's `text` begins with the kanji headword in brackets,
+ * e.g. "[水] A depiction of a long, winding flow of water." We key on that
+ * headword and keep the remaining prose. Where a kanji appears in more than one
+ * source, the most recently updated note wins.
  *
- * Pipeline:
- *   1. `pdftotext -layout <pdf> data/kanjinetworks.txt` (poppler-utils). This
- *      script runs it automatically if the .txt is absent and `pdftotext` is on
- *      PATH; otherwise generate the .txt yourself and re-run.
- *   2. Segment the text by headword. The dictionary lists each entry beginning
- *      with a single Han headword character at the start of a line, followed by
- *      its etymology prose until the next headword.
- *
- * ⚠️ This segmentation is HEURISTIC. PDF text extraction is lossy and the exact
- * layout varies, so ALWAYS spot-check data/kanjinetworks.json against a few
- * known entries before running import-kanjinetworks.ts. Tune HEADWORD_RE / the
- * cleanup below to fit the actual extracted text.
+ * No PDF tooling required — the notes are already structured JSON.
  *
  * Usage:
- *   npx tsx scripts/extract-kanjinetworks.ts [path/to/source.pdf]
+ *   npx tsx scripts/extract-kanjinetworks.ts
  */
 
-import { existsSync, readFileSync, writeFileSync, readdirSync } from 'fs';
-import { execFileSync } from 'child_process';
-import { join } from 'path';
+import { gunzipSync } from 'node:zlib';
+import { writeFileSync } from 'node:fs';
 
-const DATA_DIR = 'data';
-const TXT_FILE = join(DATA_DIR, 'kanjinetworks.txt');
-const OUT_FILE = join(DATA_DIR, 'kanjinetworks.json');
+const SOURCES = [
+	'https://raw.githubusercontent.com/acoomans/kanjinetworks/master/kanjinetworks/data/test3.japanese',
+	'https://raw.githubusercontent.com/acoomans/kanjinetworks/master/kanjinetworks/data/test4.japanese'
+];
+const OUT_FILE = 'data/kanjinetworks.json';
 
 // A Han ideograph (CJK Unified + Extension A + Compatibility).
-const HAN = '\\u4E00-\\u9FFF\\u3400-\\u4DBF\\uF900-\\uFAFF';
-// A headword line: a single Han character at line start, optionally followed by
-// readings / punctuation. Captures the headword in group 1.
-const HEADWORD_RE = new RegExp(`^[\\t >]*([${HAN}])(?![${HAN}])`);
+const HAN = /[一-鿿㐀-䶿豈-﫿]/;
+// Leading "[headword] body" — captures the bracketed headword and the prose.
+const HEADWORD = /^\s*\[([^\]]+)\]\s*([\s\S]*)$/;
 
-function resolvePdf(argPath?: string): string | null {
-	if (argPath) return existsSync(argPath) ? argPath : null;
-	if (!existsSync(DATA_DIR)) return null;
-	const pdf = readdirSync(DATA_DIR).find(
-		(f) => /etymolog/i.test(f) && f.toLowerCase().endsWith('.pdf')
-	);
-	return pdf ? join(DATA_DIR, pdf) : null;
+interface Note {
+	text?: string;
+	updatedAt?: string;
+	id?: string;
 }
 
-function ensureText(pdfArg?: string): string {
-	if (existsSync(TXT_FILE)) return readFileSync(TXT_FILE, 'utf-8');
+async function fetchNotes(url: string): Promise<Note[]> {
+	const res = await fetch(url);
+	if (!res.ok) throw new Error(`fetch ${url} -> HTTP ${res.status}`);
+	const buf = Buffer.from(await res.arrayBuffer());
+	const parsed = JSON.parse(gunzipSync(buf).toString('utf-8')) as {
+		notes: Record<string, Note> | Note[];
+	};
+	const { notes } = parsed;
+	return Array.isArray(notes) ? notes : Object.entries(notes).map(([id, n]) => ({ id, ...n }));
+}
 
-	const pdf = resolvePdf(pdfArg);
-	if (!pdf) {
-		throw new Error(
-			`No ${TXT_FILE} and no source PDF found. Place the etymology PDF in ${DATA_DIR}/ ` +
-				`(or pass its path), or pre-generate the text with:\n` +
-				`  pdftotext -layout <pdf> ${TXT_FILE}`
-		);
+async function main() {
+	const all: Note[] = [];
+	for (const url of SOURCES) {
+		const notes = await fetchNotes(url);
+		console.log(`Fetched ${notes.length} notes from ${url}`);
+		all.push(...notes);
 	}
-	console.log(`Converting ${pdf} → ${TXT_FILE} via pdftotext...`);
-	try {
-		execFileSync('pdftotext', ['-layout', pdf, TXT_FILE]);
-	} catch {
-		throw new Error(
-			`pdftotext failed or is not installed (apt-get install poppler-utils). ` +
-				`Alternatively generate ${TXT_FILE} manually.`
-		);
-	}
-	return readFileSync(TXT_FILE, 'utf-8');
-}
 
-/** Collapse whitespace and drop obvious page-furniture lines. */
-function cleanup(lines: string[]): string {
-	return lines
-		.map((l) => l.replace(/\s+/g, ' ').trim())
-		.filter((l) => l.length > 0)
-		.filter((l) => !/^\d+$/.test(l)) // bare page numbers
-		.join('\n')
-		.trim();
-}
-
-function main() {
-	const pdfArg = process.argv[2];
-	const text = ensureText(pdfArg);
-	const lines = text.split(/\r?\n/);
-
-	const entries: Record<string, string[]> = {};
-	let current: string | null = null;
-
-	for (const line of lines) {
-		const m = line.match(HEADWORD_RE);
-		if (m) {
-			current = m[1];
-			if (!entries[current]) entries[current] = [];
-			// keep the remainder of the headword line (readings/start of prose)
-			const rest = line.replace(HEADWORD_RE, '').trim();
-			if (rest) entries[current].push(rest);
-		} else if (current) {
-			entries[current].push(line);
+	const best = new Map<string, { text: string; updatedAt: string }>();
+	let skipped = 0;
+	for (const n of all) {
+		const t = (n.text ?? '').trim();
+		const m = HEADWORD.exec(t);
+		if (!m) {
+			skipped++;
+			continue;
 		}
+		let head = m[1].trim();
+		if ([...head].length !== 1 || !HAN.test(head)) {
+			const k = [...head].find((c) => HAN.test(c));
+			if (!k) {
+				skipped++;
+				continue;
+			}
+			head = k;
+		}
+		const body = m[2].replace(/\s+/g, ' ').trim();
+		if (!body) {
+			skipped++;
+			continue;
+		}
+		const upd = n.updatedAt ?? '';
+		const prev = best.get(head);
+		if (!prev || upd > prev.updatedAt) best.set(head, { text: body, updatedAt: upd });
 	}
 
 	const out: Record<string, string> = {};
-	for (const [literal, body] of Object.entries(entries)) {
-		const cleaned = cleanup(body);
-		if (cleaned.length > 0) out[literal] = cleaned;
-	}
+	for (const [k, v] of best) out[k] = v.text;
 
 	writeFileSync(OUT_FILE, JSON.stringify(out, null, 2), 'utf-8');
-	const keys = Object.keys(out);
-	console.log(`Wrote ${keys.length} entries → ${OUT_FILE}`);
-	console.log('Spot-check sample headwords:', keys.slice(0, 12).join(' '));
-	console.log('⚠️  Verify a few entries before importing — see file header.');
+	console.log(`Wrote ${Object.keys(out).length} unique kanji → ${OUT_FILE} (${skipped} notes skipped)`);
 }
 
-main();
+main().catch((e) => {
+	console.error(e);
+	process.exit(1);
+});

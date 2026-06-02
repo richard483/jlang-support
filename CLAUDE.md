@@ -20,7 +20,7 @@ npm run import:kradfile  # import KRADFILE → DB
 npm run import:kanjivg   # store KanjiVG SVG content in DB
 npm run import:jmdict    # import JMdict vocabulary → DB
 npm run import:jlpt      # supplement JLPT N3 data from kanji-data JSON
-npm run extract:etymology # Kanji Networks PDF → data/kanjinetworks.json (heuristic)
+npm run extract:etymology # download Kanji Networks notes → data/kanjinetworks.json
 npm run import:etymology  # data/kanjinetworks.json → kanji_etymology
 ```
 
