@@ -2,6 +2,7 @@
 	import SaveToBoard from '$lib/components/SaveToBoard.svelte';
 	import StrokeOrder from '$lib/components/StrokeOrder.svelte';
 	import { formatReading, katakanaToHiragana } from '$lib/utils/kana';
+	import { formatEtymology, formatMnHint } from '$lib/utils/etymology';
 	import { getDisplayPosTags } from '$lib/utils/posTags';
 	import type { PageData } from './$types';
 
@@ -35,6 +36,7 @@
 	const examples = $derived(extra?.kanjialive?.examples ?? []);
 	const refs = $derived(extra?.kanjialive?.references ?? null);
 	const corrections = $derived((extra?._validation ?? []).filter((v) => v.corrected));
+	const mnemonic = $derived(extra?.kanjialive?.mnemonic ?? null);
 
 	// Derive the hero heading from word forms or fall back to readings
 	const heroTitle = $derived(() => {
@@ -607,7 +609,7 @@
 		</section>
 	{/if}
 
-	<!-- ── 6. Etymology (Kanji Networks) ─────────────────────────────────────── -->
+	<!-- ── 6. Etymology (Kanji Networks) + Mnemonic (Kanji alive) ────────────── -->
 	<section class="space-y-5">
 		<div class="flex items-center justify-between border-b border-outline-variant/30 pb-4">
 			<h2 class="font-headline text-3xl font-bold text-secondary">Etymology</h2>
@@ -616,9 +618,17 @@
 			{/if}
 		</div>
 
-		{#if etymology}
-			<div class="p-6 bg-surface-container border-l-2 border-primary/30">
-				<p class="text-on-surface font-body text-sm leading-relaxed whitespace-pre-line">{etymology}</p>
+		{#if etymology || mnemonic}
+			<div class="p-6 bg-surface-container border-l-2 border-primary/30 space-y-4">
+				{#if etymology}
+					<p class="text-on-surface font-body text-sm leading-relaxed whitespace-pre-line">{#each formatEtymology(etymology) as tok}{#if tok.bold}<strong class="font-semibold text-primary">{tok.text}</strong>{:else}{tok.text}{/if}{/each}</p>
+				{/if}
+				{#if mnemonic}
+					<div class="pt-3 {etymology ? 'border-t border-outline-variant/20' : ''}">
+						<span class="text-[10px] font-label font-bold uppercase tracking-widest text-outline block mb-1">Mnemonic — via Kanji alive</span>
+						<p class="text-on-surface-variant font-body text-sm leading-relaxed">{#each formatMnHint(mnemonic) as tok}{#if tok.bold}<strong class="font-semibold text-primary">{tok.text}</strong>{:else}{tok.text}{/if}{/each}</p>
+					</div>
+				{/if}
 			</div>
 		{:else}
 			<p class="text-sm text-outline font-body py-4">No etymology available for this kanji yet.</p>

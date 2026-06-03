@@ -5,7 +5,7 @@ import {
 	listBoardsWithCards
 } from '$lib/server/flashcard';
 import { conjugate, type ConjugationResult } from '$lib/utils/conjugation';
-import { enrichKanji, type KanjiAdditionalData } from '$lib/server/enrich';
+import type { KanjiAdditionalData } from '$lib/kanjialive';
 import { normalizeRadical } from '$lib/utils/radicals';
 import type { PageServerLoad } from './$types';
 
@@ -101,14 +101,6 @@ function deriveForms(literal: string, kunReadings: string[]): WordForm[] {
 export const load: PageServerLoad = async ({ params, locals, cookies, fetch }) => {
 	const { literal } = params;
 	if (!literal || [...literal].length !== 1) error(400, 'Invalid kanji');
-
-	// Lazily revalidate & enrich this kanji against external APIs (once ever).
-	// Never let enrichment failures break the page — read existing data regardless.
-	try {
-		await enrichKanji(literal);
-	} catch (e) {
-		console.error(`enrichKanji(${literal}) failed:`, e);
-	}
 
 	const userId = locals.user?.id ?? null;
 	const accessToken = cookies.get('access_token');

@@ -1,17 +1,10 @@
 import { json, error } from '@sveltejs/kit';
 import db from '$lib/server/db';
-import { enrichKanji } from '$lib/server/enrich';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ params }) => {
 	const { literal } = params;
 	if (!literal || literal.length !== 1) error(400, 'Invalid kanji literal');
-
-	try {
-		await enrichKanji(literal);
-	} catch (e) {
-		console.error(`enrichKanji(${literal}) failed:`, e);
-	}
 
 	const [kanjiResult, radicalsResult, etymologyResult] = await Promise.all([
 		db.query('SELECT * FROM kanji WHERE literal = $1', [literal]),

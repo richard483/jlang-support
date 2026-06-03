@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **jlang-support** is a personal Japanese language learning platform built with SvelteKit. It provides enhanced kanji lookup (radicals, stroke diagrams, etymology, examples/audio, conjugation forms), vocabulary/compound word lookup, auth, and flashcard "boards" integration with the existing `fc.nephren.xyz` app.
 
-**Data sources:** KanjiDic2 (meanings/readings), KRADFILE (radicals), KanjiVG (stroke SVGs), JMdict (vocabulary/compounds), kanji-data (JLPT N1–N5 supplement) — all pre-imported into PostgreSQL. Kanji Networks etymological dictionary (per-kanji etymology, read-only) imported separately. At runtime, kanji are lazily revalidated/enriched against the KanjiAlive API + kanjiapi.dev. tanoshiijapanese.com is linked as an external reference per kanji; `/references` credits all sources.
+**Data sources:** KanjiDic2 (meanings/readings), KRADFILE (radicals), KanjiVG (stroke SVGs), JMdict (vocabulary/compounds), kanji-data (JLPT N1–N5 supplement) — all pre-imported into PostgreSQL. Kanji Networks etymological dictionary (per-kanji etymology, read-only) imported separately. The ~1,234 kanji KanjiAlive covers are batch-imported (`npm run import:kanjialive`) into `kanji.additional_data` — examples/audio/references/mnemonic, with stroke/grade revalidated vs kanjiapi.dev. No KanjiAlive calls at runtime. tanoshiijapanese.com is linked as an external reference per kanji; `/references` credits all sources.
 
 ## Commands
 
@@ -22,6 +22,7 @@ npm run import:jmdict    # import JMdict vocabulary → DB
 npm run import:jlpt      # supplement JLPT N3 data from kanji-data JSON
 npm run extract:etymology # download Kanji Networks notes → data/kanjinetworks.json
 npm run import:etymology  # data/kanjinetworks.json → kanji_etymology
+npm run import:kanjialive # batch KanjiAlive enrichment → kanji.additional_data (needs KANJIALIVE_API_KEY)
 ```
 
 Scripts use `npx tsx`. Data files go in `data/` (gitignored).
@@ -31,7 +32,7 @@ Scripts use `npx tsx`. Data files go in `data/` (gitignored).
 Copy `.env.example` to `.env`:
 ```
 DATABASE_URL=postgres://user:password@localhost:5432/jlang
-KANJIALIVE_API_KEY=   # optional RapidAPI key; enrichment is dormant when unset
+KANJIALIVE_API_KEY=   # RapidAPI key; used only by `npm run import:kanjialive`, not at runtime
 ```
 
 ## Architecture
@@ -45,7 +46,7 @@ All DB access goes through `src/lib/server/db.ts` (pg pool, reads `DATABASE_URL`
 | Route | Purpose |
 |---|---|
 | `/` | Search kanji, compounds, readings, or meanings |
-| `/kanji/[literal]` | Kanji detail — readings, radicals, stroke SVG, word forms, words using it, examples+audio, etymology, save-to-board. Lazily enriches via `enrichKanji()`. |
+| `/kanji/[literal]` | Kanji detail — readings, radicals, stroke SVG, word forms, words using it, examples+audio, etymology+mnemonic, save-to-board. Reads pre-imported `additional_data` (no runtime API calls). |
 | `/vocab/[word]` | Vocabulary detail — readings, meanings, component kanji breakdown |
 | `/browse` | Grid browse with JLPT/grade filters and pagination |
 | `/bookmarks` | Saved kanji list |
@@ -67,7 +68,7 @@ All DB access goes through `src/lib/server/db.ts` (pg pool, reads `DATABASE_URL`
 
 - `kanji` — 13,108 kanji with meanings, readings, JLPT (N1–N5), grade, stroke SVG content
 - `kanji_radicals` — radical decomposition for 12,156 kanji
-- `kanji` enrichment columns: `kanjialive_checked` (lazy-lookup flag), `additional_data` JSONB (examples/refs/media + `_validation` history), `enriched_at`
+- `kanji` enrichment columns: `kanjialive_checked` (imported-yet flag), `additional_data` JSONB (examples/refs/media/mnemonic + `_validation` history), `enriched_at` — populated by `import:kanjialive`
 - `kanji_etymology` — read-only etymology per kanji (from Kanji Networks). Replaced the former user-authored `kanji_mnemonics`.
 - `bookmarks` — saved kanji (single-user, no auth yet)
 - `vocab` — 173,123 JMdict entries with readings and meanings

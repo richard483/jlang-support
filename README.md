@@ -6,8 +6,8 @@ A personal Japanese language learning platform built with SvelteKit. Provides en
 
 - **Kanji search** — by character, reading (on/kun), or English meaning
 - **Kanji detail** — meanings, readings, JLPT/grade level, stroke order diagram, radical decomposition, external link to Tanoshii Japanese
-- **Dynamic enrichment** — on first view, each kanji is revalidated (stroke count, grade) and enriched with usage examples + audio against the [Kanji alive API](https://app.kanjialive.com/api/docs) and [kanjiapi.dev](https://kanjiapi.dev/), then cached. Looked up once per kanji, ever.
-- **Etymology** — per-kanji etymology sourced (read-only) from the Kanji Networks etymological dictionary
+- **KanjiAlive enrichment** — the ~1,234 kanji KanjiAlive covers are batch-imported (`npm run import:kanjialive`) with usage examples + audio, references, and a mnemonic hint; stroke count/grade are revalidated against [kanjiapi.dev](https://kanjiapi.dev/). No API key needed at runtime.
+- **Etymology** — per-kanji etymology (read-only) from the Kanji Networks dictionary, with the KanjiAlive mnemonic appended
 - **Browse** — grid view filtered by JLPT level (N5–N1) or school grade
 - **Verb conjugation** — godan, ichidan, する, くる — 14 conjugation forms
 - **References** — `/references` credits every data source
@@ -73,6 +73,12 @@ npm run extract:etymology   # download + parse → data/kanjinetworks.json
 npm run import:etymology    # data/kanjinetworks.json → kanji_etymology
 ```
 
+**KanjiAlive enrichment** (examples/audio/mnemonic for the ~1,234 covered kanji):
+```bash
+# Requires a RapidAPI key (see Environment Variables).
+KANJIALIVE_API_KEY=... npm run import:kanjialive
+```
+
 ### 5. Start the dev server
 
 ```bash
@@ -84,7 +90,7 @@ npm run dev
 | Variable | Required | Description |
 |---|---|---|
 | `DATABASE_URL` | Yes | PostgreSQL connection string, e.g. `postgres://user:pass@host:5432/jlang` |
-| `KANJIALIVE_API_KEY` | No | RapidAPI key for [Kanji alive](https://rapidapi.com/KanjiAlive/api/learn-to-read-and-write-japanese-kanji). When unset, kanji enrichment stays dormant (no external calls). |
+| `KANJIALIVE_API_KEY` | No | RapidAPI key for [Kanji alive](https://rapidapi.com/KanjiAlive/api/learn-to-read-and-write-japanese-kanji). Used only by `npm run import:kanjialive`, never at runtime. |
 | `HOST` | No | Server bind address (default: `0.0.0.0`) |
 | `PORT` | No | Server port (default: `3000`) |
 
